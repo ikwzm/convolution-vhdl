@@ -55,100 +55,141 @@ package CONV_TYPES is
     function  NEW_CONV_VECTOR_RANGE(LO,HI:integer) return CONV_VECTOR_RANGE_TYPE;
     function  NEW_CONV_VECTOR_RANGE(SIZE :integer) return CONV_VECTOR_RANGE_TYPE;
     -------------------------------------------------------------------------------
-    --! @brief 
+    --! @brief Convolution Pipeline の形(各辺の大きさ)を定義するレコードタイプ.
     -------------------------------------------------------------------------------
-    type      CONV_WINDOW_DATA_ATRB_FIELD_TYPE is record
-                   VALID             :  CONV_VECTOR_RANGE_TYPE;
-                   START_POS         :  integer;
-                   LAST_POS          :  integer;
-                   LO                :  integer;
-                   HI                :  integer;
-                   SIZE              :  integer;
-    end recorde;
-    -------------------------------------------------------------------------------
-    --! @brief Convolution Data(一回の転送単位) の各種パラメータを定義するレコードタイプ.
-    -------------------------------------------------------------------------------
-    type      CONV_WINDOW_DATA_PARAM_TYPE is record
-                  LO                :  integer;
-                  HI                :  integer;
-                  SIZE              :  integer;
-                  ELEM_FIELD        :  CONV_VECTOR_RANGE_TYPE;
-                  INFO_FIELD        :  CONV_VECTOR_RANGE_TYPE;
-                  ATRB_FIELD        :  CONV_VECTOR_RANGE_TYPE;
-                  ATRB_C_FIELD      :  CONV_WINDOW_DATA_ATRB_FIELD_TYPE;
-                  ATRB_D_FIELD      :  CONV_WINDOW_DATA_ATRB_FIELD_TYPE;
-                  ATRB_X_FIELD      :  CONV_WINDOW_DATA_ATRB_FIELD_TYPE;
-                  ATRB_Y_FIELD      :  CONV_WINDOW_DATA_ATRB_FIELD_TYPE;
-    end record;
-    -------------------------------------------------------------------------------
-    --! @brief Convolution Window の形(各辺の大きさ)を定義するレコードタイプ.
-    -------------------------------------------------------------------------------
-    type      CONV_WINDOW_SHAPE_PARAM_TYPE is record
+    type      CONV_PIPELINE_SHAPE_PARAM_TYPE is record
                   C                 :  CONV_VECTOR_RANGE_TYPE;  -- Input  Channel 配列の範囲
                   D                 :  CONV_VECTOR_RANGE_TYPE;  -- Output Channel 配列の範囲
                   X                 :  CONV_VECTOR_RANGE_TYPE;  -- X 方向の配列の範囲
                   Y                 :  CONV_VECTOR_RANGE_TYPE;  -- Y 方向の配列の範囲
     end record;
     -------------------------------------------------------------------------------
-    --! @brief Convolution Window の形(各辺の大きさ)を設定する関数群
+    --! @brief Convolution Pipeline の形(各辺の大きさ)を設定する関数群
     -------------------------------------------------------------------------------
-    function  NEW_CONV_WINDOW_SHAPE_PARAM(C,D,X,Y:IMAGE_VECTOR_RANGE_TYPE) return CONV_WINDOW_SHAPE_PARAM_TYPE;
-    function  NEW_CONV_WINDOW_SHAPE_PARAM(C,D,X,Y:integer                ) return CONV_WINDOW_SHAPE_PARAM_TYPE;
+    function  NEW_CONV_PIPELINE_SHAPE_PARAM(C,D,X,Y:CONV_VECTOR_RANGE_TYPE) return CONV_PIPELINE_SHAPE_PARAM_TYPE;
+    function  NEW_CONV_PIPELINE_SHAPE_PARAM(C,D,X,Y:integer               ) return CONV_PIPELINE_SHAPE_PARAM_TYPE;
     -------------------------------------------------------------------------------
-    --! @brief Convolution Window の各種パラメータを定義するレコードタイプ.
+    --! @brief Convolution Pipeline の各種属性のフィールドを定義するレコードタイプ.
     -------------------------------------------------------------------------------
-    type      CONV_WINDOW_PARAM_TYPE is record
-                  ELEM_BITS         :  integer;  -- 1要素(Element)のビット数
-                  INFO_BITS         :  integer;  -- その他情報のビット数
-                  SHAPE             :  CONV_WINDOW_SHAPE_PARAM_TYPE;
-                  DATA              :  CONV_WINDOW_DATA_PARAM_TYPE;
+    type      CONV_PIPELINE_DATA_ATRB_FIELD_TYPE is record
+                   VALID             :  CONV_VECTOR_RANGE_TYPE;
+                   START_POS         :  integer;
+                   LAST_POS          :  integer;
+                   LO                :  integer;
+                   HI                :  integer;
+                   SIZE              :  integer;
     end record;
     -------------------------------------------------------------------------------
-    --! @brief Convolution Window の各種パラメータをを設定する関数群
+    --! @brief Convolution Data(一回の転送単位) の各種パラメータを定義するレコードタイプ.
     -------------------------------------------------------------------------------
-    function  NEW_CONV_WINDOW_PARAM(
+    type      CONV_PIPELINE_DATA_PARAM_TYPE is record
+                  LO                :  integer;
+                  HI                :  integer;
+                  SIZE              :  integer;
+                  ELEM_FIELD        :  CONV_VECTOR_RANGE_TYPE;
+                  INFO_FIELD        :  CONV_VECTOR_RANGE_TYPE;
+                  ATRB_FIELD        :  CONV_VECTOR_RANGE_TYPE;
+                  ATRB_C_FIELD      :  CONV_PIPELINE_DATA_ATRB_FIELD_TYPE;
+                  ATRB_D_FIELD      :  CONV_PIPELINE_DATA_ATRB_FIELD_TYPE;
+                  ATRB_X_FIELD      :  CONV_PIPELINE_DATA_ATRB_FIELD_TYPE;
+                  ATRB_Y_FIELD      :  CONV_PIPELINE_DATA_ATRB_FIELD_TYPE;
+    end record;
+    -------------------------------------------------------------------------------
+    --! @brief Convolution Pipeline の各種パラメータを定義するレコードタイプ.
+    -------------------------------------------------------------------------------
+    type      CONV_PIPELINE_PARAM_TYPE is record
+                  ELEM_BITS         :  integer;  -- 1要素(Element)のビット数
+                  INFO_BITS         :  integer;  -- その他情報のビット数
+                  SHAPE             :  CONV_PIPELINE_SHAPE_PARAM_TYPE;
+                  DATA              :  CONV_PIPELINE_DATA_PARAM_TYPE;
+    end record;
+    -------------------------------------------------------------------------------
+    --! @brief Convolution Pipeline の各種パラメータをを設定する関数群
+    -------------------------------------------------------------------------------
+    function  NEW_CONV_PIPELINE_PARAM(
                   ELEM_BITS         :  integer;
                   INFO_BITS         :  integer;
-                  SHAPE             :  CONV_WINDOW_SHAPE_PARAM_TYPE)
-                  return               CONV_WINDOW_PARAM_TYPE;
-    function  NEW_CONV_WINDOW_PARAM(
-                  ELEM_BITS         :  integer;
-                  SHAPE             :  CONV_WINDOW_SHAPE_PARAM_TYPE)
-                  return               CONV_WINDOW_PARAM_TYPE;
-    function  NEW_CONV_WINDOW_PARAM(
+                  SHAPE             :  CONV_PIPELINE_SHAPE_PARAM_TYPE)
+                  return               CONV_PIPELINE_PARAM_TYPE;
+    function  NEW_CONV_PIPELINE_PARAM(
                   ELEM_BITS         :  integer;
                   INFO_BITS         :  integer;
                   C                 :  CONV_VECTOR_RANGE_TYPE;
                   D                 :  CONV_VECTOR_RANGE_TYPE;
                   X                 :  CONV_VECTOR_RANGE_TYPE;
                   Y                 :  CONV_VECTOR_RANGE_TYPE)
-                  return               CONV_WINDOW_PARAM_TYPE;
-    function  NEW_CONV_WINDOW_PARAM(
+                  return               CONV_PIPELINE_PARAM_TYPE;
+    function  NEW_CONV_PIPELINE_PARAM(
                   ELEM_BITS         :  integer;
                   INFO_BITS         :  integer;
                   C                 :  integer;
                   D                 :  integer;
                   X                 :  integer;
                   Y                 :  integer)
-                  return               CONV_WINDOW_PARAM_TYPE;
+                  return               CONV_PIPELINE_PARAM_TYPE;
     -------------------------------------------------------------------------------
-    --! @brief Convolution Window Data から要素を取り出す関数
+    --! @brief Convolution Pipeline Data から要素を取り出す関数
     -------------------------------------------------------------------------------
-    function  GET_ELEMENT_FROM_CONV_WINDOW_DATA(
-                  PARAM             :  CONV_WINDOW_PARAM_TYPE;
+    function  GET_ELEMENT_FROM_DATA(
+                  PARAM             :  CONV_PIPELINE_PARAM_TYPE;
                   C                 :  integer;
+                  D                 :  integer;
                   X                 :  integer;
                   Y                 :  integer;
                   DATA              :  std_logic_vector)
                   return               std_logic_vector;
     -------------------------------------------------------------------------------
-    --! @brief Convolution Window Data に要素を追加するプロシージャ
+    --! @brief Convolution Pipeline Data に要素を追加するプロシージャ
     -------------------------------------------------------------------------------
-    procedure SET_ELEMENT_TO_CONV_WINDOW_DATA(
-                  PARAM             :  in    CONV_WINDOW_PARAM_TYPE;
+    procedure SET_ELEMENT_TO_DATA(
+                  PARAM             :  in    CONV_PIPELINE_PARAM_TYPE;
                   C                 :  in    integer;
+                  D                 :  in    integer;
                   X                 :  in    integer;
                   Y                 :  in    integer;
+                  ELEMENT           :  in    std_logic_vector;
+        variable  DATA              :  inout std_logic_vector);
+    -------------------------------------------------------------------------------
+    --! @brief Convolution D Channel Vector の各種パラメータを定義するレコードタイプ.
+    -------------------------------------------------------------------------------
+    type      CONV_D_VECTOR_PARAM_TYPE is record
+                  ELEM_BITS         :  integer;  -- 1要素(Element)のビット数
+                  INFO_BITS         :  integer;  -- その他情報のビット数
+                  SHAPE             :  CONV_PIPELINE_SHAPE_PARAM_TYPE;
+                  DATA              :  CONV_PIPELINE_DATA_PARAM_TYPE;
+    end record;
+    -------------------------------------------------------------------------------
+    --! @brief Convolution D Channel Vector の各種パラメータをを設定する関数群
+    -------------------------------------------------------------------------------
+    function  NEW_CONV_D_VECTOR_PARAM(
+                  ELEM_BITS         :  integer;
+                  INFO_BITS         :  integer;
+                  SHAPE             :  CONV_PIPELINE_SHAPE_PARAM_TYPE)
+                  return               CONV_D_VECTOR_PARAM_TYPE;
+    function  NEW_CONV_D_VECTOR_PARAM(
+                  ELEM_BITS         :  integer;
+                  INFO_BITS         :  integer;
+                  D                 :  CONV_VECTOR_RANGE_TYPE)
+                  return               CONV_D_VECTOR_PARAM_TYPE;
+    function  NEW_CONV_D_VECTOR_PARAM(
+                  ELEM_BITS         :  integer;
+                  INFO_BITS         :  integer;
+                  D                 :  integer)
+                  return               CONV_D_VECTOR_PARAM_TYPE;
+    -------------------------------------------------------------------------------
+    --! @brief Convolution D Vector Data から要素を取り出す関数
+    -------------------------------------------------------------------------------
+    function  GET_ELEMENT_FROM_DATA(
+                  PARAM             :  CONV_D_VECTOR_PARAM_TYPE;
+                  D                 :  integer;
+                  DATA              :  std_logic_vector)
+                  return               std_logic_vector;
+    -------------------------------------------------------------------------------
+    --! @brief Convolution D Vector Data に要素を追加するプロシージャ
+    -------------------------------------------------------------------------------
+    procedure SET_ELEMENT_TO_DATA(
+                  PARAM             :  in    CONV_D_VECTOR_PARAM_TYPE;
+                  D                 :  in    integer;
                   ELEMENT           :  in    std_logic_vector;
         variable  DATA              :  inout std_logic_vector);
 end CONV_TYPES;
@@ -181,32 +222,40 @@ package body CONV_TYPES is
         return NEW_CONV_VECTOR_RANGE(0, SIZE-1);
     end function;
     -------------------------------------------------------------------------------
-    --! @brief Vector の各種パラメータを設定する関数
+    --! @brief Convolution Pipeline の形(各辺の大きさ)を設定する関数群
     -------------------------------------------------------------------------------
-    function  NEW_CONV_VECTOR_RANGE(PREV: CONV_VECTOR_RANGE_TYPE;
-                                    SIZE: integer) return CONV_VECTOR_RANGE_TYPE
+    function  NEW_CONV_PIPELINE_SHAPE_PARAM(C,D,X,Y:CONV_VECTOR_RANGE_TYPE) return CONV_PIPELINE_SHAPE_PARAM_TYPE
     is
-        variable param :  CONV_VECTOR_RANGE_TYPE;
+        variable param :  CONV_PIPELINE_SHAPE_PARAM_TYPE;
     begin
-        if (SIZE > 0) then
-            param.LO   := PREV.HI+1;
-            param.HI   := PREV.HI+1 + SIZE-1;
-            param.SIZE := SIZE;
-        else
-            param.LO   := PREV.HI+1;
-            param.HI   := PREV.HI+1;
-            param.SIZE := SIZE;
-        end if;
+        param.C := C;
+        param.D := D;
+        param.X := X;
+        param.Y := Y;
         return param;
     end function;
     -------------------------------------------------------------------------------
-    --! @brief Convolution Window の属性フィールドパラメータを設定する関数
+    --! @brief Convolution Pipeline の形(各辺の大きさ)を設定する関数群
     -------------------------------------------------------------------------------
-    function  NEW_CONV_WINDOW_DATA_ATRB_FIELD(PREV_HI: integer;
-                                              SIZE   : integer)
-                                              return   CONV_WINDOW_DATA_ATRB_FIELD_TYPE
+    function  NEW_CONV_PIPELINE_SHAPE_PARAM(C,D,X,Y:integer               ) return CONV_PIPELINE_SHAPE_PARAM_TYPE
     is
-        variable param  :  CONV_WINDOW_DATA_ATRB_FIELD_TYPE;
+    begin
+        return  NEW_CONV_PIPELINE_SHAPE_PARAM(
+                    C => NEW_CONV_VECTOR_RANGE(C),
+                    D => NEW_CONV_VECTOR_RANGE(D),
+                    X => NEW_CONV_VECTOR_RANGE(X),
+                    Y => NEW_CONV_VECTOR_RANGE(Y)
+                    );
+    end function;
+    -------------------------------------------------------------------------------
+    --! @brief Convolution Pipeline の属性フィールドパラメータを設定する関数
+    -------------------------------------------------------------------------------
+    function  NEW_CONV_PIPELINE_DATA_ATRB_FIELD(
+                  PREV_HI   :  integer;
+                  SIZE      :  integer)
+                  return       CONV_PIPELINE_DATA_ATRB_FIELD_TYPE
+    is
+        variable param      :  CONV_PIPELINE_DATA_ATRB_FIELD_TYPE;
     begin
         param.VALID.LO  := PREV_HI+1;
         param.VALID.HI  := param.VALID.LO  + SIZE-1;
@@ -218,100 +267,223 @@ package body CONV_TYPES is
         return param;
     end function;
     -------------------------------------------------------------------------------
-    --! @brief Convolution Window の各種パラメータをを設定する関数
+    --! @brief Convolution Pipeline のデータフィールドパラメータを設定する関数
     -------------------------------------------------------------------------------
-    function  NEW_CONV_WINDOW_PARAM(
-                  ELEM_BITS         :  integer;
-                  INFO_BITS         :  integer;
-                  SHAPE             :  CONV_CONV_SHAPE_PARAM_TYPE)
-                  return               CONV_CONV_PARAM_TYPE
+    function  NEW_CONV_PIPELINE_DATA_PARAM(
+                  ELEM_BITS  :  integer;
+                  INFO_BITS  :  integer;
+                  SHAPE      :  CONV_PIPELINE_SHAPE_PARAM_TYPE)
+                  return        CONV_PIPELINE_DATA_PARAM_TYPE
     is
-        variable  param             :  CONV_CONV_PARAM_TYPE;
+        variable  param      :  CONV_PIPELINE_DATA_PARAM_TYPE;
     begin
-        param.ELEM_BITS         := ELEM_BITS;
-        param.ATRB_BITS         := IMAGE_ATRB_BITS;
-        param.INFO_BITS         := INFO_BITS;
-        param.SHAPE             := SHAPE;
-        param.DATA.ELEM_FIELD   := NEW_CONV_VECTOR_RANGE(param.ELEM_BITS * param.SHAPE.C.SIZE * param.SHAPE.X.SIZE * param.SHAPE.Y.SIZE);
-        param.DATA.ATRB_C_FIELD := NEW_CONV_WINDOW_DATA_ATRB_FIELD(param.DATA.ELEM_FIELD.HI  , param.SHAPE.C.SIZE);
-        param.DATA.ATRB_D_FIELD := NEW_CONV_WINDOW_DATA_ATRB_FIELD(param.DATA.ATRB_C_FIELD.HI, param.SHAPE.D.SIZE);
-        param.DATA.ATRB_X_FIELD := NEW_CONV_WINDOW_DATA_ATRB_FIELD(param.DATA.ATRB_D_FIELD.HI, param.SHAPE.X.SIZE);
-        param.DATA.ATRB_Y_FIELD := NEW_CONV_WINDOW_DATA_ATRB_FIELD(param.DATA.ATRB_Y_FIELD.HI, param.SHAPE.Y.SIZE);
-        param.DATA.ATRB_FIELD   := NEW_CONV_VECTOR_RANGE(param.DATA.ATRB_C_FIELD.LO,
-                                                         param.DATA.ATRB_Y_FIELD.HI);
-        param.DATA.LO           := param.DATA.ELEM_FIELD.LO;
+        param.ELEM_FIELD     := NEW_CONV_VECTOR_RANGE(ELEM_BITS);
+        param.ATRB_C_FIELD   := NEW_CONV_PIPELINE_DATA_ATRB_FIELD(param.ELEM_FIELD.HI  , SHAPE.C.SIZE);
+        param.ATRB_D_FIELD   := NEW_CONV_PIPELINE_DATA_ATRB_FIELD(param.ATRB_C_FIELD.HI, SHAPE.D.SIZE);
+        param.ATRB_X_FIELD   := NEW_CONV_PIPELINE_DATA_ATRB_FIELD(param.ATRB_D_FIELD.HI, SHAPE.X.SIZE);
+        param.ATRB_Y_FIELD   := NEW_CONV_PIPELINE_DATA_ATRB_FIELD(param.ATRB_Y_FIELD.HI, SHAPE.Y.SIZE);
+        param.ATRB_FIELD     := NEW_CONV_VECTOR_RANGE(param.ATRB_C_FIELD.LO,
+                                                      param.ATRB_Y_FIELD.HI);
+        param.LO             := param.ELEM_FIELD.LO;
         if (INFO_BITS > 0) then
-            param.DATA.INFO_FIELD := NEW_CONV_VECTOR_RANGE(param.DATA.ATRB_FIELD+1, param.DATA.ATRB_FIELD+INFO_BITS);
-            param.DATA.HI         := param.DATA.INFO_FIELD.HI;
+            param.INFO_FIELD := NEW_CONV_VECTOR_RANGE(param.ATRB_FIELD.HI+1, param.ATRB_FIELD.HI+INFO_BITS);
+            param.HI         := param.INFO_FIELD.HI;
         else
-            param.DATA.INFO_FIELD := NEW_CONV_VECTOR_RANGE(0);
-            param.DATA.HI         := param.DATA.ATRB_FIELD.HI;
+            param.INFO_FIELD := NEW_CONV_VECTOR_RANGE(0);
+            param.HI         := param.ATRB_FIELD.HI;
         end if;
-        param.DATA.SIZE         := param.DATA.HI - param.DATA.LO + 1;
+        param.SIZE           := param.HI - param.LO + 1;
         return param;
     end function;
     -------------------------------------------------------------------------------
-    --! @brief Convolution Window の各種パラメータをを設定する関数
+    --! @brief Convolution Pipeline の各種パラメータをを設定する関数
     -------------------------------------------------------------------------------
-    function  NEW_CONV_WINDOW_PARAM(
-                  ELEM_BITS         :  integer;
-                  SHAPE             :  CONV_WINDOW_SHAPE_PARAM_TYPE)
-                  return               CONV_WINDOW_PARAM_TYPE
+    function  NEW_CONV_PIPELINE_PARAM(
+                  ELEM_BITS  :  integer;
+                  INFO_BITS  :  integer;
+                  SHAPE      :  CONV_PIPELINE_SHAPE_PARAM_TYPE)
+                  return        CONV_PIPELINE_PARAM_TYPE
+    is
+        variable  param      :  CONV_PIPELINE_PARAM_TYPE;
+    begin
+        param.ELEM_BITS      := ELEM_BITS;
+        param.INFO_BITS      := INFO_BITS;
+        param.SHAPE          := SHAPE;
+        param.DATA           := NEW_CONV_PIPELINE_DATA_PARAM(
+                                    ELEM_BITS => param.ELEM_BITS * param.SHAPE.C.SIZE * param.SHAPE.D.SIZE * param.SHAPE.X.SIZE * param.SHAPE.Y.SIZE,
+                                    INFO_BITS => param.INFO_BITS,
+                                    SHAPE     => param.SHAPE
+                                );
+        return param;
+    end function;
+    -------------------------------------------------------------------------------
+    --! @brief Convolution Pipeline の各種パラメータをを設定する関数(簡易版)
+    -------------------------------------------------------------------------------
+    function  NEW_CONV_PIPELINE_PARAM(
+                  ELEM_BITS  :  integer;
+                  INFO_BITS  :  integer;
+                  C          :  CONV_VECTOR_RANGE_TYPE;
+                  D          :  CONV_VECTOR_RANGE_TYPE;
+                  X          :  CONV_VECTOR_RANGE_TYPE;
+                  Y          :  CONV_VECTOR_RANGE_TYPE)
+                  return        CONV_PIPELINE_PARAM_TYPE
     is
     begin
-        return NEW_CONV_WINDOW_PARAM(
-                  ELEM_BITS         => ELEM_BITS,
-                  INFO_BITS         => 0,
-                  SHAPE             => SHAPE
+        return NEW_CONV_PIPELINE_PARAM(
+                  ELEM_BITS  => ELEM_BITS,
+                  INFO_BITS  => INFO_BITS,
+                  SHAPE      => NEW_CONV_PIPELINE_SHAPE_PARAM(C,D,X,Y)
                );
     end function;
     -------------------------------------------------------------------------------
-    --! @brief Convolution Window の各種パラメータをを設定する関数
+    --! @brief Convolution Pipeline の各種パラメータをを設定する関数(簡易版)
     -------------------------------------------------------------------------------
-    function  NEW_CONV_WINDOW_PARAM(
-                  ELEM_BITS         :  integer;
-                  INFO_BITS         :  integer;
-                  C                 :  CONV_VECTOR_RANGE_TYPE;
-                  D                 :  CONV_VECTOR_RANGE_TYPE;
-                  X                 :  CONV_VECTOR_RANGE_TYPE;
-                  Y                 :  CONV_VECTOR_RANGE_TYPE)
-                  return               CONV_WINDOW_PARAM_TYPE
+    function  NEW_CONV_PIPELINE_PARAM(
+                  ELEM_BITS  :  integer;
+                  INFO_BITS  :  integer;
+                  C          :  integer;
+                  D          :  integer;
+                  X          :  integer;
+                  Y          :  integer)
+                  return        CONV_PIPELINE_PARAM_TYPE
     is
     begin
-        return NEW_CONV_WINDOW_PARAM(
-                  ELEM_BITS         => ELEM_BITS,
-                  INFO_BITS         => INFO_BITS,
-                  SHAPE             => NEW_CONV_WINDOW_SHAPE_PARAM(C,D,X,Y)
-               );
-    end function;
-    -------------------------------------------------------------------------------
-    --! @brief Convolution Window の各種パラメータをを設定する関数
-    -------------------------------------------------------------------------------
-    function  NEW_CONV_WINDOW_PARAM(
-                  ELEM_BITS         :  integer;
-                  INFO_BITS         :  integer;
-                  C                 :  integer;
-                  D                 :  integer;
-                  X                 :  integer;
-                  Y                 :  integer)
-                  return               CONV_WINDOW_PARAM_TYPE
-    is
-    begin
-        return NEW_CONV_WINDOW_PARAM(
-                  ELEM_BITS         => ELEM_BITS,
-                  INFO_BITS         => INFO_BITS,
-                  SHAPE             => NEW_CONV_WINDOW_SHAPE_PARAM(C,D,X,Y)
+        return NEW_CONV_PIPELINE_PARAM(
+                  ELEM_BITS  => ELEM_BITS,
+                  INFO_BITS  => INFO_BITS,
+                  SHAPE      => NEW_CONV_PIPELINE_SHAPE_PARAM(C,D,X,Y)
                );
     end function;
 
     -------------------------------------------------------------------------------
-    --! @brief Convolution Window Data から要素を取り出す関数
+    --! @brief Convolution Pipeline Data から要素を取り出す関数
     -------------------------------------------------------------------------------
-    function  GET_ELEMENT_FROM_CONV_WINDOW_DATA(
-                  PARAM             :  CONV_WINDOW_PARAM_TYPE;
-                  C                 :  integer;
-                  X                 :  integer;
-                  Y                 :  integer;
+    function  GET_ELEMENT_FROM_DATA(
+                  PARAM      :  CONV_PIPELINE_PARAM_TYPE;
+                  C          :  integer;
+                  D          :  integer;
+                  X          :  integer;
+                  Y          :  integer;
+                  DATA       :  std_logic_vector)
+                  return        std_logic_vector
+    is
+        alias     input_data :  std_logic_vector(PARAM.DATA.SIZE           -1 downto 0) is DATA;
+        variable  elem_data  :  std_logic_vector(PARAM.DATA.ELEM_FIELD.SIZE-1 downto 0);
+        variable  element    :  std_logic_vector(PARAM.ELEM_BITS           -1 downto 0);
+        constant  Y_SIZE     :  integer := PARAM.SHAPE.X.SIZE*PARAM.SHAPE.D.SIZE*PARAM.SHAPE.C.SIZE*1;
+        constant  X_SIZE     :  integer :=                    PARAM.SHAPE.D.SIZE*PARAM.SHAPE.C.SIZE*1;
+        constant  D_SIZE     :  integer :=                                       PARAM.SHAPE.C.SIZE*1;
+        constant  C_SIZE     :  integer :=                                                          1;
+    begin
+        elem_data := input_data(PARAM.DATA.ELEM_FIELD.HI downto PARAM.DATA.ELEM_FIELD.LO);
+        element   := elem_data(((Y-PARAM.SHAPE.Y.LO)*Y_SIZE +
+                                (X-PARAM.SHAPE.X.LO)*X_SIZE +
+                                (D-PARAM.SHAPE.D.LO)*D_SIZE +
+                                (C-PARAM.SHAPE.C.LO)*C_SIZE + 1)*PARAM.ELEM_BITS-1 downto
+                               ((Y-PARAM.SHAPE.Y.LO)*Y_SIZE +
+                                (X-PARAM.SHAPE.X.LO)*X_SIZE +
+                                (D-PARAM.SHAPE.D.LO)*D_SIZE +
+                                (C-PARAM.SHAPE.C.LO)*C_SIZE    )*PARAM.ELEM_BITS);
+        return element;
+    end function;
+
+    -------------------------------------------------------------------------------
+    --! @brief Convolution Pipeline Data に要素を追加するプロシージャ
+    -------------------------------------------------------------------------------
+    procedure SET_ELEMENT_TO_DATA(
+                  PARAM      :  in    CONV_PIPELINE_PARAM_TYPE;
+                  C          :  in    integer;
+                  D          :  in    integer;
+                  X          :  in    integer;
+                  Y          :  in    integer;
+                  ELEMENT    :  in    std_logic_vector;
+        variable  DATA       :  inout std_logic_vector)
+    is
+        constant  Y_SIZE     :  integer := PARAM.SHAPE.X.SIZE*PARAM.SHAPE.D.SIZE*PARAM.SHAPE.C.SIZE*1;
+        constant  X_SIZE     :  integer :=                    PARAM.SHAPE.D.SIZE*PARAM.SHAPE.C.SIZE*1;
+        constant  D_SIZE     :  integer :=                                       PARAM.SHAPE.C.SIZE*1;
+        constant  C_SIZE     :  integer :=                                                          1;
+    begin
+        DATA(((Y-PARAM.SHAPE.Y.LO)*Y_SIZE +
+              (X-PARAM.SHAPE.X.LO)*X_SIZE +
+              (D-PARAM.SHAPE.D.LO)*D_SIZE +
+              (C-PARAM.SHAPE.C.LO)*C_SIZE + 1)*PARAM.ELEM_BITS -1 + PARAM.DATA.ELEM_FIELD.LO downto
+             ((Y-PARAM.SHAPE.Y.LO)*Y_SIZE +
+              (X-PARAM.SHAPE.X.LO)*X_SIZE +
+              (D-PARAM.SHAPE.D.LO)*D_SIZE +
+              (C-PARAM.SHAPE.C.LO)*C_SIZE    )*PARAM.ELEM_BITS    + PARAM.DATA.ELEM_FIELD.LO) := ELEMENT;
+    end procedure;
+
+    -------------------------------------------------------------------------------
+    --! @brief Convolution D Channel Vector の各種パラメータをを設定する関数
+    -------------------------------------------------------------------------------
+    function  NEW_CONV_D_VECTOR_PARAM(
+                  ELEM_BITS  :  integer;
+                  INFO_BITS  :  integer;
+                  SHAPE      :  CONV_PIPELINE_SHAPE_PARAM_TYPE)
+                  return        CONV_D_VECTOR_PARAM_TYPE
+    is
+        variable  param      :  CONV_D_VECTOR_PARAM_TYPE;
+    begin
+        param.ELEM_BITS      := ELEM_BITS;
+        param.INFO_BITS      := INFO_BITS;
+        param.SHAPE          := SHAPE;
+        param.DATA           := NEW_CONV_PIPELINE_DATA_PARAM(
+                                    ELEM_BITS => param.ELEM_BITS * param.SHAPE.D.SIZE,
+                                    INFO_BITS => param.INFO_BITS,
+                                    SHAPE     => param.SHAPE
+                                );
+        return param;
+    end function;
+    -------------------------------------------------------------------------------
+    --! @brief Convolution D Channel Vector の各種パラメータをを設定する関数
+    -------------------------------------------------------------------------------
+    function  NEW_CONV_D_VECTOR_PARAM(
+                  ELEM_BITS         :  integer;
+                  INFO_BITS         :  integer;
+                  D                 :  CONV_VECTOR_RANGE_TYPE)
+                  return               CONV_D_VECTOR_PARAM_TYPE
+    is
+    begin
+        return NEW_CONV_D_VECTOR_PARAM(
+                  ELEM_BITS         => ELEM_BITS,
+                  INFO_BITS         => INFO_BITS,
+                  SHAPE             => NEW_CONV_PIPELINE_SHAPE_PARAM(
+                                           C => NEW_CONV_VECTOR_RANGE(1),
+                                           D => D                       ,
+                                           X => NEW_CONV_VECTOR_RANGE(1),
+                                           Y => NEW_CONV_VECTOR_RANGE(1)
+                                       )
+               );
+    end function;
+    -------------------------------------------------------------------------------
+    --! @brief Convolution D Channel Vector の各種パラメータをを設定する関数
+    -------------------------------------------------------------------------------
+    function  NEW_CONV_D_VECTOR_PARAM(
+                  ELEM_BITS         :  integer;
+                  INFO_BITS         :  integer;
+                  D                 :  integer)
+                  return               CONV_D_VECTOR_PARAM_TYPE
+    is
+    begin
+        return NEW_CONV_D_VECTOR_PARAM(
+                  ELEM_BITS         => ELEM_BITS,
+                  INFO_BITS         => INFO_BITS,
+                  SHAPE             => NEW_CONV_PIPELINE_SHAPE_PARAM(
+                                           C => NEW_CONV_VECTOR_RANGE(1),
+                                           D => NEW_CONV_VECTOR_RANGE(D),
+                                           X => NEW_CONV_VECTOR_RANGE(1),
+                                           Y => NEW_CONV_VECTOR_RANGE(1)
+                                       )
+               );
+    end function;
+
+    -------------------------------------------------------------------------------
+    --! @brief Convolution D Channel Vector の Data から要素を取り出す関数
+    -------------------------------------------------------------------------------
+    function  GET_ELEMENT_FROM_DATA(
+                  PARAM             :  CONV_D_VECTOR_PARAM_TYPE;
+                  D                 :  integer;
                   DATA              :  std_logic_vector)
                   return               std_logic_vector
     is
@@ -320,32 +492,21 @@ package body CONV_TYPES is
         variable  element           :  std_logic_vector(PARAM.ELEM_BITS           -1 downto 0);
     begin
         elem_data := input_data(PARAM.DATA.ELEM_FIELD.HI downto PARAM.DATA.ELEM_FIELD.LO);
-        element   := elem_data(((Y-PARAM.SHAPE.Y.LO)*PARAM.SHAPE.X.SIZE*PARAM.SHAPE.C.SIZE +
-                                (X-PARAM.SHAPE.X.LO)*PARAM.SHAPE.C.SIZE                    +
-                                (C-PARAM.SHAPE.C.LO)                                       + 1)*PARAM.ELEM_BITS-1 downto
-                               ((Y-PARAM.SHAPE.Y.LO)*PARAM.SHAPE.X.SIZE*PARAM.SHAPE.C.SIZE +
-                                (X-PARAM.SHAPE.X.LO)*PARAM.SHAPE.C.SIZE                    +
-                                (C-PARAM.SHAPE.C.LO)                                          )*PARAM.ELEM_BITS);
+        element   := elem_data(((D-PARAM.SHAPE.D.LO) + 1)*PARAM.ELEM_BITS-1 downto
+                               ((D-PARAM.SHAPE.D.LO)    )*PARAM.ELEM_BITS);
         return element;
     end function;
-
     -------------------------------------------------------------------------------
-    --! @brief Convolution Window Data に要素を追加するプロシージャ
+    --! @brief Convolution D Channel Vector の Data に要素を追加するプロシージャ
     -------------------------------------------------------------------------------
-    procedure SET_ELEMENT_TO_CONV_WINDOW_DATA(
-                  PARAM             :  in    CONV_WINDOW_PARAM_TYPE;
-                  C                 :  in    integer;
-                  X                 :  in    integer;
-                  Y                 :  in    integer;
+    procedure SET_ELEMENT_TO_DATA(
+                  PARAM             :  in    CONV_D_VECTOR_PARAM_TYPE;
+                  D                 :  in    integer;
                   ELEMENT           :  in    std_logic_vector;
         variable  DATA              :  inout std_logic_vector)
     is
-    begin
-        DATA(((Y-PARAM.SHAPE.Y.LO)*PARAM.SHAPE.X.SIZE*PARAM.SHAPE.C.SIZE +
-              (X-PARAM.SHAPE.X.LO)*PARAM.SHAPE.C.SIZE                    +
-              (C-PARAM.SHAPE.C.LO)                                       +1)*PARAM.ELEM_BITS -1 + PARAM.DATA.ELEM_FIELD.LO downto
-             ((Y-PARAM.SHAPE.Y.LO)*PARAM.SHAPE.X.SIZE*PARAM.SHAPE.C.SIZE +
-              (X-PARAM.SHAPE.X.LO)*PARAM.SHAPE.C.SIZE                    +
-              (C-PARAM.SHAPE.C.LO)                                         )*PARAM.ELEM_BITS    + PARAM.DATA.ELEM_FIELD.LO) := ELEMENT;
+    begin 
+        DATA(((D-PARAM.SHAPE.D.LO) + 1)*PARAM.ELEM_BITS-1 downto
+             ((D-PARAM.SHAPE.D.LO)    )*PARAM.ELEM_BITS) := ELEMENT;
     end procedure;
-end package;
+end package body;

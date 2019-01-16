@@ -1,15 +1,17 @@
-ENTITY_FILES = conv_int_adder_tree.vhd                 \
-               ${ENDLIST}
+CONV_INT_ENTITY_FILES = conv_int_adder.vhd       \
+                        conv_int_adder_tree.vhd  \
+                        conv_int_accumulator.vhd \
+                        ${ENDLIST}
 
-components.vhd : ${ENTITY_FILES}
+conv_int_components.vhd : ${CONV_INT_ENTITY_FILES}
 	../../../PipeWork/tools/MakeComponentPackage.rb --verbose \
-            --brief   'CONVOLUTION COMPONENT LIBRARY DESCRIPTION' \
+            --brief   'CONVOLUTION INTEGER COMPONENT LIBRARY DESCRIPTION' \
             --version 0.1.0 \
             --author  'Ichiro Kawazome <ichiro_k@ca2.so-net.ne.jp>' \
             --library CONVOLUTION \
-            --package COMPONENTS \
-            --output  components.vhd \
-            ${ENTITY_FILES}
+            --package CONV_INT_COMPONENTS \
+            --output  conv_int_components.vhd \
+            ${CONV_INT_ENTITY_FILES}
 
 clean:
-	-rm components.vhd
+	-rm conv_int_components.vhd

@@ -43,8 +43,8 @@ use     CONVOLUTION.CONV_TYPES.all;
 -----------------------------------------------------------------------------------
 entity  CONV_INT_ADDER_TREE is
     generic (
-        I_PARAM         : CONV_WINDOW_PARAM_TYPE := NEW_CONV_WINDOW_PARAM(8,0,1,1,1);
-        O_PARAM         : CONV_WINDOW_PARAM_TYPE := NEW_CONV_WINDOW_PARAM(8,0,1,1,1);
+        I_PARAM         : CONV_PIPELINE_PARAM_TYPE := NEW_CONV_PIPELINE_PARAM(8,0,2,1,1,1);
+        O_PARAM         : CONV_PIPELINE_PARAM_TYPE := NEW_CONV_PIPELINE_PARAM(8,0,1,1,1,1);
         QUEUE_SIZE      : integer := 2;
         SIGN            : boolean := TRUE
     );
@@ -108,93 +108,87 @@ use     ieee.std_logic_1164.all;
 use     ieee.numeric_std.all;
 library CONVOLUTION;
 use     CONVOLUTION.CONV_TYPES.all;
-use     CONVOLUTION.COMPONENTS.CONV_INT_ADDER_TREE;
 library PIPEWORK;
 use     PIPEWORK.COMPONENTS.PIPELINE_REGISTER;
 architecture RTL of CONV_INT_ADDER_TREE is
-    subtype   I_ELEM_TYPE     is std_logic_vector(I_PARAM.ELEM_BITS-1 downto 0);
-    type      I_ELEM_VECTOR   is array(0 to I_PARAM.SHAPE.Y.SIZE-1,
-                                       0 to I_PARAM.SHAPE.X.SIZE-1,
-                                       0 to I_PARAM.SHAPE.C.SIZE-1) of I_ELEM_TYPE;
-    signal    i_elem          :  I_ELEM_VECTOR;
-    signal    i_c_valid       :  std_logic_vector(I_PARAM.SHAPE.C.SIZE-1 downto 0);
-    signal    i_c_start       :  std_logic;
-    signal    i_c_last        :  std_logic;
-    signal    i_d_valid       :  std_logic_vector(I_PARAM.SHAPE.D.SIZE-1 downto 0);
-    signal    i_d_start       :  std_logic;
-    signal    i_d_last        :  std_logic;
-    signal    i_x_valid       :  std_logic_vector(I_PARAM.SHAPE.X.SIZE-1 downto 0);
-    signal    i_x_start       :  std_logic;
-    signal    i_x_last        :  std_logic;
-    signal    i_y_valid       :  std_logic_vector(I_PARAM.SHAPE.Y.SIZE-1 downto 0);
-    signal    i_y_start       :  std_logic;
-    signal    i_y_last        :  std_logic;
+    -------------------------------------------------------------------------------
+    --
+    -------------------------------------------------------------------------------
+    component CONV_INT_ADDER
+        generic (
+            I_PARAM     : CONV_PIPELINE_PARAM_TYPE := NEW_CONV_PIPELINE_PARAM(8,0,2,1,1,1);
+            O_PARAM     : CONV_PIPELINE_PARAM_TYPE := NEW_CONV_PIPELINE_PARAM(8,0,1,1,1,1);
+            QUEUE_SIZE  : integer := 2;
+            SIGN        : boolean := TRUE
+        );
+        port (
+            CLK         : in  std_logic; 
+            RST         : in  std_logic;
+            CLR         : in  std_logic;
+            I_DATA      : in  std_logic_vector(I_PARAM.DATA.SIZE-1 downto 0);
+            I_VALID     : in  std_logic;
+            I_READY     : out std_logic;
+            O_DATA      : out std_logic_vector(O_PARAM.DATA.SIZE-1 downto 0);
+            O_VALID     : out std_logic;
+            O_READY     : in  std_logic
+        );
+    end component;
+    -------------------------------------------------------------------------------
+    --
+    -------------------------------------------------------------------------------
+    component CONV_INT_ADDER_TREE
+        generic (
+            I_PARAM     : CONV_PIPELINE_PARAM_TYPE := NEW_CONV_PIPELINE_PARAM(8,0,2,1,1,1);
+            O_PARAM     : CONV_PIPELINE_PARAM_TYPE := NEW_CONV_PIPELINE_PARAM(8,0,1,1,1,1);
+            QUEUE_SIZE  : integer := 2;
+            SIGN        : boolean := TRUE
+        );
+        port (
+            CLK         : in  std_logic; 
+            RST         : in  std_logic;
+            CLR         : in  std_logic;
+            I_DATA      : in  std_logic_vector(I_PARAM.DATA.SIZE-1 downto 0);
+            I_VALID     : in  std_logic;
+            I_READY     : out std_logic;
+            O_DATA      : out std_logic_vector(O_PARAM.DATA.SIZE-1 downto 0);
+            O_VALID     : out std_logic;
+            O_READY     : in  std_logic
+        );
+    end component;
 begin
     -------------------------------------------------------------------------------
     --
     -------------------------------------------------------------------------------
-    process (I_DATA) begin
-        for y in 0 to I_PARAM.Y.SIZE-1 loop
-        for x in 0 to I_PARAM.X.SIZE-1 loop
-        for c in 0 to I_PARAM.C.SIZE-1 loop
-            i_elem(y,x,c) <= GET_ELEMENT_FROM_CONV_WINDOW_DATA(I_PARAM, c, x, y, I_DATA);
-        end loop;
-        end loop;
-        end loop;
-        i_c_valid <= I_DATA(I_PARAM.DATA.ATRB_C_FIELD.VALID.HI downto I_PARAM.DATA.ATRB_C_FIELD.VALID.LO);
-        i_c_start <= I_DATA(I_PARAM.DATA.ATRB_C_FIELD.STARRT_POS);
-        i_c_last  <= I_DATA(I_PARAM.DATA.ATRB_C_FIELD.LAST_POS);
-        i_d_valid <= I_DATA(I_PARAM.DATA.ATRB_D_FIELD.VALID.HI downto I_PARAM.DATA.ATRB_D_FIELD.VALID.LO);
-        i_d_start <= I_DATA(I_PARAM.DATA.ATRB_D_FIELD.STARRT_POS);
-        i_d_last  <= I_DATA(I_PARAM.DATA.ATRB_D_FIELD.LAST_POS);
-        i_x_valid <= I_DATA(I_PARAM.DATA.ATRB_X_FIELD.VALID.HI downto I_PARAM.DATA.ATRB_X_FIELD.VALID.LO);
-        i_x_start <= I_DATA(I_PARAM.DATA.ATRB_X_FIELD.STARRT_POS);
-        i_x_last  <= I_DATA(I_PARAM.DATA.ATRB_X_FIELD.LAST_POS);
-        i_y_valid <= I_DATA(I_PARAM.DATA.ATRB_Y_FIELD.VALID.HI downto I_PARAM.DATA.ATRB_Y_FIELD.VALID.LO);
-        i_y_start <= I_DATA(I_PARAM.DATA.ATRB_Y_FIELD.STARRT_POS);
-        i_y_last  <= I_DATA(I_PARAM.DATA.ATRB_Y_FIELD.LAST_POS);
-    end process;
-    -------------------------------------------------------------------------------
-    --
-    -------------------------------------------------------------------------------
-    C_SIZE_EQ_1: if (I_PARAM.SHAPE.C.SIZE = 1) generate
-    begin 
+    ROOT: if (I_PARAM.SHAPE.C.SIZE = O_PARAM.SHAPE.C.SIZE) generate
         ---------------------------------------------------------------------------
         --
         ---------------------------------------------------------------------------
-        process (i_elem, i_c_valid, i_c_start, i_c_last,
-                         i_d_valid, i_d_start, i_d_last,
-                         i_x_valid, i_x_start, i_x_last,
-                         i_y_valid, i_y_start, i_y_last, I_DATA)
-            variable data :  std_logic_vector(O_PARAM.DATA.SIZE-1 downto 0);
-            variable elem :  std_logic_vector(O_PARAM.ELEM_BITS-1 downto 0);
+        process (I_DATA)
+            variable data   :  std_logic_vector(O_PARAM.DATA.SIZE-1 downto 0);
+            variable i_elem :  std_logic_vector(I_PARAM.ELEM_BITS-1 downto 0);
+            variable o_elem :  std_logic_vector(O_PARAM.ELEM_BITS-1 downto 0);
         begin
             for y in 0 to O_PARAM.SHAPE.Y.SIZE-1 loop
             for x in 0 to O_PARAM.SHAPE.X.SIZE-1 loop
+            for d in 0 to O_PARAM.SHAPE.D.SIZE-1 loop
             for c in 0 to O_PARAM.SHAPE.C.SIZE-1 loop
+                i_elem := GET_ELEMENT_FROM_DATA(I_PARAM, c, d, x, y, I_DATA);
                 if (SIGN) then
-                    elem := std_logic_vector(resize(to_01(  signed(i_elem(c,x,y))), O_PARAM.ELEM_BITS));
+                    o_elem := std_logic_vector(resize(to_01(  signed(i_elem)), O_PARAM.ELEM_BITS));
                 else
-                    elem := std_logic_vector(resize(to_01(unsigned(i_elem(c,x,y))), O_PARAM.ELEM_BITS));
+                    o_elem := std_logic_vector(resize(to_01(unsigned(i_elem)), O_PARAM.ELEM_BITS));
                 end if;
-                SET_ELEMENT_TO_CONV_WINDOW_DATA(O_PARAM, c, x, y, elem, data);
-            end loop;        
-            end loop;        
+                SET_ELEMENT_TO_DATA(O_PARAM, c, d, x, y, o_elem, data);
             end loop;
-            data(O_PARAM.DATA.ATRB_C_FIELD.VALID.HI downto O_PARAM.DATA.ATRB_C_FIELD.VALID.LO) := i_c_valid;
-            data(O_PARAM.DATA.ATRB_C_FIELD.START_POS)                                          := i_c_start;
-            data(O_PARAM.DATA.ATRB_C_FIELD.LAST_POS )                                          := i_c_last;
-            data(O_PARAM.DATA.ATRB_D_FIELD.VALID.HI downto O_PARAM.DATA.ATRB_D_FIELD.VALID.LO) := i_d_valid;
-            data(O_PARAM.DATA.ATRB_D_FIELD.START_POS)                                          := i_d_start;
-            data(O_PARAM.DATA.ATRB_D_FIELD.LAST_POS )                                          := i_d_last;
-            data(O_PARAM.DATA.ATRB_X_FIELD.VALID.HI downto O_PARAM.DATA.ATRB_X_FIELD.VALID.LO) := i_x_valid;
-            data(O_PARAM.DATA.ATRB_X_FIELD.START_POS)                                          := i_x_start;
-            data(O_PARAM.DATA.ATRB_X_FIELD.LAST_POS )                                          := i_x_last;
-            data(O_PARAM.DATA.ATRB_Y_FIELD.VALID.HI downto O_PARAM.DATA.ATRB_Y_FIELD.VALID.LO) := i_y_valid;
-            data(O_PARAM.DATA.ATRB_Y_FIELD.START_POS)                                          := i_y_start;
-            data(O_PARAM.DATA.ATRB_Y_FIELD.LAST_POS )                                          := i_y_last;
+            end loop;
+            end loop;
+            end loop;
+            data(O_PARAM.DATA.ATRB_C_FIELD.HI downto O_PARAM.DATA.ATRB_C_FIELD.LO) := I_DATA(I_PARAM.DATA.ATRB_C_FIELD.HI downto I_PARAM.DATA.ATRB_C_FIELD.LO);
+            data(O_PARAM.DATA.ATRB_D_FIELD.HI downto O_PARAM.DATA.ATRB_D_FIELD.LO) := I_DATA(I_PARAM.DATA.ATRB_D_FIELD.HI downto I_PARAM.DATA.ATRB_D_FIELD.LO);
+            data(O_PARAM.DATA.ATRB_X_FIELD.HI downto O_PARAM.DATA.ATRB_X_FIELD.LO) := I_DATA(I_PARAM.DATA.ATRB_X_FIELD.HI downto I_PARAM.DATA.ATRB_X_FIELD.LO);
+            data(O_PARAM.DATA.ATRB_Y_FIELD.HI downto O_PARAM.DATA.ATRB_Y_FIELD.LO) := I_DATA(I_PARAM.DATA.ATRB_Y_FIELD.HI downto I_PARAM.DATA.ATRB_Y_FIELD.LO);
             if (O_PARAM.INFO_BITS > 0) then
-                data(O_PARAM.DATA.INFO_FIELD.HI downto O_PARAM.DATA.INFO_FIELD.LO) := I_DATA(I_PARAM.DATA.INFO_FIELD.HI downto I_PARAM.DATA.INFO_FIELD.LO);
+                data(O_PARAM.DATA.INFO_FIELD.HI downto O_PARAM.DATA.INFO_FIELD.LO) := I_DATA(I_PARAM.DATA.INFO_FIELD.HI   downto I_PARAM.DATA.INFO_FIELD.LO  );
             end if;
             O_DATA <= data;
         end process;
@@ -204,14 +198,11 @@ begin
     -------------------------------------------------------------------------------
     --
     -------------------------------------------------------------------------------
-    C_SIZE_GT_1: if (I_PARAM.SHAPE.C.SIZE > 1) generate
-        ---------------------------------------------------------------------------
-        --
-        ---------------------------------------------------------------------------
+    TREE: if (I_PARAM.SHAPE.C.SIZE > O_PARAM.SHAPE.C.SIZE) generate
         constant  T_ELEM_BITS     :  integer := I_PARAM.ELEM_BITS+1;
         constant  T_SHAPE_C_SIZE  :  integer := (I_PARAM.SHAPE.C.SIZE + 1) / 2;
-        constant  T_PARAM         :  CONV_WINDOW_PARAM_TYPE
-                                  := NEW_CONV_WINDOW_PARAM(
+        constant  T_PARAM         :  CONV_PIPELINE_PARAM_TYPE 
+                                  := NEW_CONV_PIPELINE_PARAM(
                                          ELEM_BITS => T_ELEM_BITS         ,
                                          INFO_BITS => I_PARAM.INFO_BITS   ,
                                          C         => T_SHAPE_C_SIZE      ,
@@ -219,126 +210,35 @@ begin
                                          X         => I_PARAM.SHAPE.X.SIZE,
                                          Y         => I_PARAM.SHAPE.Y.SIZE
                                      );
-        subtype   T_ELEM_TYPE     is std_logic_vector(T_PARAM.ELEM_BITS-1 downto 0);
-        type      T_ELEM_VECTOR   is array(0 to T_PARAM.SHAPE.Y.SIZE-1,
-                                           0 to T_PARAM.SHAPE.X.SIZE-1,
-                                           0 to T_PARAM.SHAPE.C.SIZE-1) of T_ELEM_TYPE;
-        ---------------------------------------------------------------------------
-        --
-        ---------------------------------------------------------------------------
-        signal    t_elem          :  T_ELEM_VECTOR;
-        signal    t_c_valid       :  std_logic_vector(T_PARAM.SHAPE.C.SIZE-1 downto 0);
-        signal    t_data          :  std_logic_vector(T_PARAM.DATA.SIZE-1    downto 0);
-        ---------------------------------------------------------------------------
-        --
-        ---------------------------------------------------------------------------
-        signal    q_data          :  std_logic_vector(T_PARAM.DATA.SIZE-1    downto 0);
-        signal    q_valid         :  std_logic;
-        signal    q_ready         :  std_logic;
+        signal    t_data          :  std_logic_vector(T_PARAM.DATA.SIZE-1 downto 0);
+        signal    t_valid         :  std_logic;
+        signal    t_ready         :  std_logic;
     begin
         ---------------------------------------------------------------------------
         --
         ---------------------------------------------------------------------------
-        process(i_elem, i_c_valid)
-            variable a_valid :  std_logic;
-            variable a_elem  :  std_logic_vector(T_PARAM.ELEM_BITS-1 downto 0);
-            variable b_valid :  std_logic;
-            variable b_elem  :  std_logic_vector(T_PARAM.ELEM_BITS-1 downto 0);
-        begin
-            for y in 0 to T_PARAM.SHAPE.Y.SIZE-1 loop
-            for x in 0 to T_PARAM.SHAPE.X.SIZE-1 loop
-            for c in 0 to T_PARAM.SHAPE.C.SIZE-1 loop
-                if (c*2+0 < I_PARAM.SHAPE.C.SIZE) then
-                    a_elem  := i_elem(c*2+0);
-                else
-                    a_elem  := (others => '0');
-                end if;
-                if (c*2+1 < I_PARAM.SHAPE.C.SIZE) then
-                    b_elem  := i_elem(c*2+1);
-                else
-                    b_elem  := (others => '0');
-                end if;
-                if (SIGN) then
-                    t_elem(y,x,c) <= std_logic_vector(resize(to_01(  signed(a_elem)), T_ELEM_BITS) +
-                                                      resize(to_01(  signed(b_elem)), T_ELEM_BITS));
-                else
-                    t_elem(y,x,c) <= std_logic_vector(resize(to_01(unsigned(a_elem)), T_ELEM_BITS) +
-                                                      resize(to_01(unsigned(b_elem)), T_ELEM_BITS));
-                end if;
-            end loop;        
-            end loop;        
-            end loop;        
-            for c in 0 to T_PARAM.SHAPE.C.SIZE-1 loop
-                if (c*2+0 < I_PARAM.SHAPE.C.SIZE) then
-                    a_valid := i_c_valid(c*2+0);
-                else
-                    a_valid := '0';
-                end if;
-                if (c*2+1 < I_PARAM.SHAPE.C.SIZE) then
-                    b_valid := i_c_valid(c*2+1);
-                else
-                    b_valid := '0';
-                end if;
-                t_c_valid(c) <= a_valid or b_valid;
-            end loop;        
-        end process;
-        ---------------------------------------------------------------------------
-        --
-        ---------------------------------------------------------------------------
-        process (t_elem, t_c_valid, i_c_start, i_c_last,
-                         i_d_valid, i_d_start, i_d_last,
-                         i_x_valid, i_x_start, i_x_last,
-                         i_y_valid, i_y_start, i_y_last, I_DATA)
-            variable data :  std_logic_vector(T_PARAM.DATA.SIZE-1 downto 0);
-        begin
-            for y in 0 to T_PARAM.SHAPE.Y.SIZE-1 loop
-            for x in 0 to T_PARAM.SHAPE.X.SIZE-1 loop
-            for c in 0 to T_PARAM.SHAPE.C.SIZE-1 loop
-                SET_ELEMENT_TO_CONV_WINDOW_DATA(T_PARAM, c, x, y, t_elem(c,x,y), data);
-            end loop;        
-            end loop;        
-            end loop;
-            data(T_PARAM.DATA.ATRB_C_FIELD.VALID.HI downto T_PARAM.DATA.ATRB_C_FIELD.VALID.LO) := t_c_valid;
-            data(T_PARAM.DATA.ATRB_C_FIELD.START_POS)                                          := i_c_start;
-            data(T_PARAM.DATA.ATRB_C_FIELD.LAST_POS )                                          := i_c_last;
-            data(T_PARAM.DATA.ATRB_D_FIELD.VALID.HI downto T_PARAM.DATA.ATRB_D_FIELD.VALID.LO) := i_d_valid;
-            data(T_PARAM.DATA.ATRB_D_FIELD.START_POS)                                          := i_d_start;
-            data(T_PARAM.DATA.ATRB_D_FIELD.LAST_POS )                                          := i_d_last;
-            data(T_PARAM.DATA.ATRB_X_FIELD.VALID.HI downto T_PARAM.DATA.ATRB_X_FIELD.VALID.LO) := i_x_valid;
-            data(T_PARAM.DATA.ATRB_X_FIELD.START_POS)                                          := i_x_start;
-            data(T_PARAM.DATA.ATRB_X_FIELD.LAST_POS )                                          := i_x_last;
-            data(T_PARAM.DATA.ATRB_Y_FIELD.VALID.HI downto T_PARAM.DATA.ATRB_Y_FIELD.VALID.LO) := i_y_valid;
-            data(T_PARAM.DATA.ATRB_Y_FIELD.START_POS)                                          := i_y_start;
-            data(T_PARAM.DATA.ATRB_Y_FIELD.LAST_POS )                                          := i_y_last;
-            if (T_PARAM.INFO_BITS > 0) then
-                data(T_PARAM.DATA.INFO_FIELD.HI downto T_PARAM.DATA.INFO_FIELD.LO) := I_DATA(I_PARAM.DATA.INFO_FIELD.HI downto I_PARAM.DATA.INFO_FIELD.LO);
-            end if;
-            t_data <= data;
-        end process;
-        ---------------------------------------------------------------------------
-        --
-        ---------------------------------------------------------------------------
-        QUEUE: PIPELINE_REGISTER                   -- 
+        ADDER: CONV_INT_ADDER                      -- 
             generic map (                          -- 
-                QUEUE_SIZE  => QUEUE_SIZE        , --
-                WORD_BITS   => T_PARAM.DATA.SIZE   -- 
+                I_PARAM     => I_PARAM           , -- 
+                O_PARAM     => T_PARAM           , -- 
+                QUEUE_SIZE  => QUEUE_SIZE        , -- 
+                SIGN        => SIGN                -- 
             )                                      -- 
             port map (                             -- 
                 CLK         => CLK               , -- In  :
                 RST         => RST               , -- In  :
                 CLR         => CLR               , -- In  :
-                I_WORD      => t_data            , -- In  :
-                I_VAL       => I_VALID           , -- In  :
-                I_RDY       => I_READY           , -- Out :
-                Q_WORD      => q_data            , -- Out :
-                Q_VAL       => q_valid           , -- Out :
-                Q_RDY       => q_ready           , -- In  :
-                BUSY        => open                -- Out :
+                I_DATA      => I_DATA            , -- In  :
+                I_VALID     => I_VALID           , -- In  :
+                I_READY     => I_READY           , -- Out :
+                O_DATA      => t_data            , -- Out :
+                O_VALID     => t_valid           , -- Out :
+                O_READY     => t_ready             -- In  :
             );                                     -- 
         ---------------------------------------------------------------------------
         --
         ---------------------------------------------------------------------------
-        NEXT_ADDER: CONV_INT_ADDER_TREE            -- 
+        NEXT_LEVEL: CONV_INT_ADDER_TREE            -- 
             generic map (                          -- 
                 I_PARAM     => T_PARAM           , -- 
                 O_PARAM     => O_PARAM           , -- 
@@ -349,9 +249,9 @@ begin
                 CLK         => CLK               , -- In  :
                 RST         => RST               , -- In  :
                 CLR         => CLR               , -- In  :
-                I_DATA      => q_data            , -- In  :
-                I_VALID     => q_valid           , -- In  :
-                I_READY     => q_ready           , -- Out :
+                I_DATA      => t_data            , -- In  :
+                I_VALID     => t_valid           , -- In  :
+                I_READY     => t_ready           , -- Out :
                 O_DATA      => O_DATA            , -- Out :
                 O_VALID     => O_VALID           , -- Out :
                 O_READY     => O_READY             -- In  :
