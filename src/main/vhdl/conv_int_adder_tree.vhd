@@ -2,7 +2,7 @@
 --!     @file    conv_int_adder_tree.vhd
 --!     @brief   Convolution Integer Adder Tree Module
 --!     @version 0.1.0
---!     @date    2019/1/15
+--!     @date    2019/1/18
 --!     @author  Ichiro Kawazome <ichiro_k@ca2.so-net.ne.jp>
 -----------------------------------------------------------------------------------
 --
@@ -43,10 +43,32 @@ use     CONVOLUTION.CONV_TYPES.all;
 -----------------------------------------------------------------------------------
 entity  CONV_INT_ADDER_TREE is
     generic (
-        I_PARAM         : CONV_PIPELINE_PARAM_TYPE := NEW_CONV_PIPELINE_PARAM(8,0,2,1,1,1);
-        O_PARAM         : CONV_PIPELINE_PARAM_TYPE := NEW_CONV_PIPELINE_PARAM(8,0,1,1,1,1);
-        QUEUE_SIZE      : integer := 2;
-        SIGN            : boolean := TRUE
+        I_PARAM         : --! @brief INPUT  PIPELINE DATA PARAMETER :
+                          --! パイプラインデータ入力ポートのパラメータを指定する.
+                          --! * 次の条件を満していなければならない.
+                          --!     I_PARAM.SHAPE.C.SIZE >= O_PARAM.SHAPE.C.SIZE
+                          --!     I_PARAM.SHAPE.D.SIZE  = O_PARAM.SHAPE.D.SIZE
+                          --!     I_PARAM.SHAPE.X.SIZE  = O_PARAM.SHAPE.X.SIZE
+                          --!     I_PARAM.SHAPE.Y.SIZE  = O_PARAM.SHAPE.Y.SIZE
+                          --!     I_PARAM.ELEM_BITS    <= O_PARAM.ELEM_BITS (桁あふれに注意)
+                          CONV_PIPELINE_PARAM_TYPE := NEW_CONV_PIPELINE_PARAM(8,0,2,1,1,1);
+        O_PARAM         : --! @brief OUTPUT PIPELINE DATA PARAMETER :
+                          --! パイプラインデータ出力ポートのパラメータを指定する.
+                          --! * 次の条件を満していなければならない.
+                          --!     O_PARAM.SHAPE.C.SIZE <= I_PARAM.SHAPE.C.SIZE
+                          --!     O_PARAM.SHAPE.D.SIZE  = I_PARAM.SHAPE.D.SIZE
+                          --!     O_PARAM.SHAPE.X.SIZE  = I_PARAM.SHAPE.X.SIZE
+                          --!     O_PARAM.SHAPE.Y.SIZE >= I_PARAM.SHAPE.Y.SIZE
+                          --!     O_PARAM.ELEM_BITS    >= I_PARAM.ELEM_BITS (桁あふれに注意)
+                          CONV_PIPELINE_PARAM_TYPE := NEW_CONV_PIPELINE_PARAM(8,0,1,1,1,1);
+        QUEUE_SIZE      : --! パイプラインレジスタの深さを指定する.
+                          --! * QUEUE_SIZE=0 の場合は出力にキューが挿入されずダイレ
+                          --!   クトに出力される.
+                          integer := 2;
+        SIGN            : --! 演算時の正負符号の有無を指定する.
+                          --! * SIGN=TRUE  の場合、符号有り(  signed)で計算する.
+                          --! * SIGN=FALSE の場合、符号無し(unsigned)で計算する.
+                          boolean := TRUE
     );
     port (
     -------------------------------------------------------------------------------
@@ -64,39 +86,37 @@ entity  CONV_INT_ADDER_TREE is
     -------------------------------------------------------------------------------
     -- 入力側 I/F
     -------------------------------------------------------------------------------
-        I_DATA          : --! @brief INPUT CONVOLUTION WINDOW DATA :
-                          --! ウィンドウデータ入力.
+        I_DATA          : --! @brief INPUT CONVOLUTION PIPELINE DATA :
+                          --! パイプラインデータ入力.
                           in  std_logic_vector(I_PARAM.DATA.SIZE-1 downto 0);
-        I_VALID         : --! @brief INPUT CONVOLUTION WINDOW DATA VALID :
-                          --! 入力ウィンドウデータ有効信号.
+        I_VALID         : --! @brief INPUT CONVOLUTION PIPELINE DATA VALID :
+                          --! 入力パイプラインデータ有効信号.
                           --! * I_DATAが有効であることを示す.
-                          --! * I_VALID='1'and I_READY='1'でウィンドウデータがキュー
-                          --!   に取り込まれる.
+                          --! * I_VALID='1'and I_READY='1'でパイプラインデータが
+                          --!   取り込まれる.
                           in  std_logic;
-        I_READY         : --! @brief INPUT CONVOLUTION WINDOW DATA READY :
-                          --! 入力ウィンドウデータレディ信号.
-                          --! * キューが次のウィンドウデータを入力出来ることを示す.
-                          --! * I_VALID='1'and I_READY='1'でウィンドウデータがキュー
-                          --!   に取り込まれる.
+        I_READY         : --! @brief INPUT CONVOLUTION PIPELINE DATA READY :
+                          --! 入力パイプラインデータレディ信号.
+                          --! * 次のパイプラインデータを入力出来ることを示す.
+                          --! * I_VALID='1'and I_READY='1'でパイプラインデータが
+                          --!   取り込まれる.
                           out std_logic;
     -------------------------------------------------------------------------------
     -- 出力側 I/F
     -------------------------------------------------------------------------------
-        O_DATA          : --! @brief OUTPUT CONVOLUTION WINDOW DATA :
-                          --! ウィンドウデータ出力.
+        O_DATA          : --! @brief OUTPUT CONVOLUTION PIPELINE DATA :
+                          --! パイプラインデータ出力.
                           out std_logic_vector(O_PARAM.DATA.SIZE-1 downto 0);
-        O_VALID         : --! @brief OUTPUT CONVOLUTION WINDOW DATA VALID :
-                          --! 出力ウィンドウデータ有効信号.
+        O_VALID         : --! @brief OUTPUT CONVOLUTION PIPELINE DATA VALID :
+                          --! 出力パイプラインデータ有効信号.
                           --! * O_DATA が有効であることを示す.
-                          --! * O_VALID='1'and O_READY='1'でウィンドウデータがキュー
-                          --!   から取り除かれる.
+                          --! * O_VALID='1'and O_READY='1'でパイプラインデータが
+                          --!   キューから取り除かれる.
                           out std_logic;
-        O_READY         : --! @brief OUTPUT CONVOLUTION WINDOW DATA READY :
-                          --! 出力ウィンドウデータレディ信号.
-                          --! * キューから次のウィンドウデータを取り除く準備が出来て
-                          --!   いることを示す.
-                          --! * O_VALID='1'and O_READY='1'でウィンドウデータがキュー
-                          --!   から取り除かれる.
+        O_READY         : --! @brief OUTPUT CONVOLUTION PIPELINE DATA READY :
+                          --! 出力パイプラインデータレディ信号.
+                          --! * O_VALID='1'and O_READY='1'でパイプラインデータが
+                          --!   キューから取り除かれる.
                           in  std_logic
     );
 end CONV_INT_ADDER_TREE;
@@ -157,7 +177,7 @@ architecture RTL of CONV_INT_ADDER_TREE is
     end component;
 begin
     -------------------------------------------------------------------------------
-    --
+    -- 
     -------------------------------------------------------------------------------
     ROOT: if (I_PARAM.SHAPE.C.SIZE = O_PARAM.SHAPE.C.SIZE) generate
         ---------------------------------------------------------------------------
@@ -183,10 +203,7 @@ begin
             end loop;
             end loop;
             end loop;
-            data(O_PARAM.DATA.ATRB_C_FIELD.HI downto O_PARAM.DATA.ATRB_C_FIELD.LO) := I_DATA(I_PARAM.DATA.ATRB_C_FIELD.HI downto I_PARAM.DATA.ATRB_C_FIELD.LO);
-            data(O_PARAM.DATA.ATRB_D_FIELD.HI downto O_PARAM.DATA.ATRB_D_FIELD.LO) := I_DATA(I_PARAM.DATA.ATRB_D_FIELD.HI downto I_PARAM.DATA.ATRB_D_FIELD.LO);
-            data(O_PARAM.DATA.ATRB_X_FIELD.HI downto O_PARAM.DATA.ATRB_X_FIELD.LO) := I_DATA(I_PARAM.DATA.ATRB_X_FIELD.HI downto I_PARAM.DATA.ATRB_X_FIELD.LO);
-            data(O_PARAM.DATA.ATRB_Y_FIELD.HI downto O_PARAM.DATA.ATRB_Y_FIELD.LO) := I_DATA(I_PARAM.DATA.ATRB_Y_FIELD.HI downto I_PARAM.DATA.ATRB_Y_FIELD.LO);
+            data(O_PARAM.DATA.ATRB_FIELD.HI downto O_PARAM.DATA.ATRB_FIELD.LO) := I_DATA(I_PARAM.DATA.ATRB_FIELD.HI downto I_PARAM.DATA.ATRB_FIELD.LO);
             if (O_PARAM.INFO_BITS > 0) then
                 data(O_PARAM.DATA.INFO_FIELD.HI downto O_PARAM.DATA.INFO_FIELD.LO) := I_DATA(I_PARAM.DATA.INFO_FIELD.HI   downto I_PARAM.DATA.INFO_FIELD.LO  );
             end if;
