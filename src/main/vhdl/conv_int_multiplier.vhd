@@ -1,6 +1,6 @@
 -----------------------------------------------------------------------------------
---!     @file    conv_int_adder.vhd
---!     @brief   Convolution Integer Adder Module
+--!     @file    conv_int_multiplier.vhd
+--!     @brief   Convolution Integer Multiplier Module
 --!     @version 0.1.0
 --!     @date    2019/2/4
 --!     @author  Ichiro Kawazome <ichiro_k@ca2.so-net.ne.jp>
@@ -39,28 +39,31 @@ use     ieee.std_logic_1164.all;
 library CONVOLUTION;
 use     CONVOLUTION.CONV_TYPES.all;
 -----------------------------------------------------------------------------------
---! @brief Convolution Integer Adder Module
+--! @brief Convolution Integer Multiplier Module
 -----------------------------------------------------------------------------------
-entity  CONV_INT_ADDER is
+entity  CONV_INT_MULTIPLIER is
     generic (
-        I_PARAM         : --! @brief INPUT  PIPELINE DATA PARAMETER :
+        I_PARAM         : --! @brief INPUT  CONVOLUTION PIPELINE IMAGE DATA PARAMETER :
                           --! パイプラインデータ入力ポートのパラメータを指定する.
                           --! * 次の条件を満していなければならない.
-                          --!     I_PARAM.SHAPE.C.SIZE >= O_PARAM.SHAPE.C.SIZE
-                          --!     I_PARAM.SHAPE.D.SIZE  = O_PARAM.SHAPE.D.SIZE
-                          --!     I_PARAM.SHAPE.X.SIZE  = O_PARAM.SHAPE.X.SIZE
-                          --!     I_PARAM.SHAPE.Y.SIZE  = O_PARAM.SHAPE.Y.SIZE
-                          --!     I_PARAM.ELEM_BITS    <= O_PARAM.ELEM_BITS (桁あふれに注意)
-                          CONV_PIPELINE_PARAM_TYPE := NEW_CONV_PIPELINE_PARAM(8,0,2,1,1,1);
-        O_PARAM         : --! @brief OUTPUT PIPELINE DATA PARAMETER :
+                          --!     I_PARAM.SHAPE = O_PARAM.SHAPE
+                          --!     I_PARAM.SHAPE = W_PARAM.SHAPE
+                          --!     I_PARAM.ELEM_BITS+W_PARAM.ELEM_BITS <= O_PARAM.ELEM_BITS (桁あふれに注意)
+                          CONV_PIPELINE_PARAM_TYPE := NEW_CONV_PIPELINE_PARAM(8,0,1,1,1,1);
+        W_PARAM         : --! @brief INPUT  CONVOLUTION PIPELINE WEIGHT DATA PARAMETER :
+                          --! パイプラインデータ入力ポートのパラメータを指定する.
+                          --! * 次の条件を満していなければならない.
+                          --!     W_PARAM.SHAPE = I_PARAM.SHAPE
+                          --!     W_PARAM.SHAPE = O_PARAM.SHAPE
+                          --!     W_PARAM.ELEM_BITS+I_PARAM.ELEM_BITS <= O_PARAM.ELEM_BITS (桁あふれに注意)
+                          CONV_PIPELINE_PARAM_TYPE := NEW_CONV_PIPELINE_PARAM(8,0,1,1,1,1);
+        O_PARAM         : --! @brief OUTPUT CONVOLUTION PIPELINE DATA PARAMETER :
                           --! パイプラインデータ出力ポートのパラメータを指定する.
                           --! * 次の条件を満していなければならない.
-                          --!     O_PARAM.SHAPE.C.SIZE <= I_PARAM.SHAPE.C.SIZE
-                          --!     O_PARAM.SHAPE.D.SIZE  = I_PARAM.SHAPE.D.SIZE
-                          --!     O_PARAM.SHAPE.X.SIZE  = I_PARAM.SHAPE.X.SIZE
-                          --!     O_PARAM.SHAPE.Y.SIZE >= I_PARAM.SHAPE.Y.SIZE
-                          --!     O_PARAM.ELEM_BITS    >= I_PARAM.ELEM_BITS (桁あふれに注意)
-                          CONV_PIPELINE_PARAM_TYPE := NEW_CONV_PIPELINE_PARAM(8,0,1,1,1,1);
+                          --!     O_PARAM.SHAPE = I_PARAM.SHAPE
+                          --!     O_PARAM.SHAPE = W_PARAM.SHAPE
+                          --!     O_PARAM.ELEM_BITS >= I_PARAM.ELEM_BITS+W_PARAM.ELEM_BITS (桁あふれに注意)
+                          CONV_PIPELINE_PARAM_TYPE := NEW_CONV_PIPELINE_PARAM(16,0,1,1,1,1);
         QUEUE_SIZE      : --! パイプラインレジスタの深さを指定する.
                           --! * QUEUE_SIZE=0 の場合は出力にキューが挿入されずダイレ
                           --!   クトに出力される.
@@ -86,40 +89,55 @@ entity  CONV_INT_ADDER is
     -------------------------------------------------------------------------------
     -- 入力側 I/F
     -------------------------------------------------------------------------------
-        I_DATA          : --! @brief INPUT CONVOLUTION PIPELINE DATA :
+        I_DATA          : --! @brief INPUT CONVOLUTION PIPELINE IMAGE DATA :
                           --! パイプラインデータ入力.
                           in  std_logic_vector(I_PARAM.DATA.SIZE-1 downto 0);
-        I_VALID         : --! @brief INPUT CONVOLUTION PIPELINE DATA VALID :
+        I_VALID         : --! @brief INPUT CONVOLUTION PIPELINE IMAGE DATA VALID :
                           --! 入力パイプラインデータ有効信号.
                           --! * I_DATAが有効であることを示す.
                           --! * I_VALID='1'and I_READY='1'でパイプラインデータが
                           --!   取り込まれる.
                           in  std_logic;
-        I_READY         : --! @brief INPUT CONVOLUTION PIPELINE DATA READY :
+        I_READY         : --! @brief INPUT CONVOLUTION PIPELINE IMAGE DATA READY :
                           --! 入力パイプラインデータレディ信号.
                           --! * 次のパイプラインデータを入力出来ることを示す.
                           --! * I_VALID='1'and I_READY='1'でパイプラインデータが
                           --!   取り込まれる.
                           out std_logic;
+        W_DATA          : --! @brief INPUT CONVOLUTION PIPELINE WEIGHT DATA :
+                          --! パイプラインデータ入力.
+                          in  std_logic_vector(W_PARAM.DATA.SIZE-1 downto 0);
+        W_VALID         : --! @brief INPUT CONVOLUTION PIPELINE WEIGHT DATA VALID :
+                          --! 入力パイプラインデータ有効信号.
+                          --! * W_DATAが有効であることを示す.
+                          --! * W_VALID='1'and W_READY='1'でパイプラインデータが
+                          --!   取り込まれる.
+                          in  std_logic;
+        W_READY         : --! @brief INPUT CONVOLUTION PIPELINE WEIGHT DATA READY :
+                          --! 入力パイプラインデータレディ信号.
+                          --! * 次のパイプラインデータを入力出来ることを示す.
+                          --! * W_VALID='1'and W_READY='1'でパイプラインデータが
+                          --!   取り込まれる.
+                          out std_logic;
     -------------------------------------------------------------------------------
     -- 出力側 I/F
     -------------------------------------------------------------------------------
-        O_DATA          : --! @brief OUTPUT CONVOLUTION PIPELINE DATA :
+        O_DATA          : --! @brief OUTPUT CONVOLUTION PIPELINE IMAGE DATA :
                           --! パイプラインデータ出力.
                           out std_logic_vector(O_PARAM.DATA.SIZE-1 downto 0);
-        O_VALID         : --! @brief OUTPUT CONVOLUTION PIPELINE DATA VALID :
+        O_VALID         : --! @brief OUTPUT CONVOLUTION PIPELINE IMAGE DATA VALID :
                           --! 出力パイプラインデータ有効信号.
                           --! * O_DATA が有効であることを示す.
                           --! * O_VALID='1'and O_READY='1'でパイプラインデータが
                           --!   キューから取り除かれる.
                           out std_logic;
-        O_READY         : --! @brief OUTPUT CONVOLUTION PIPELINE DATA READY :
+        O_READY         : --! @brief OUTPUT CONVOLUTION PIPELINE IMAGE DATA READY :
                           --! 出力パイプラインデータレディ信号.
                           --! * O_VALID='1'and O_READY='1'でパイプラインデータが
                           --!   キューから取り除かれる.
                           in  std_logic
     );
-end CONV_INT_ADDER;
+end CONV_INT_MULTIPLIER;
 -----------------------------------------------------------------------------------
 -- 
 -----------------------------------------------------------------------------------
@@ -130,7 +148,7 @@ library CONVOLUTION;
 use     CONVOLUTION.CONV_TYPES.all;
 library PIPEWORK;
 use     PIPEWORK.COMPONENTS.PIPELINE_REGISTER;
-architecture RTL of CONV_INT_ADDER is
+architecture RTL of CONV_INT_MULTIPLIER is
     -------------------------------------------------------------------------------
     --
     -------------------------------------------------------------------------------
@@ -144,21 +162,32 @@ architecture RTL of CONV_INT_ADDER is
     -------------------------------------------------------------------------------
     --
     -------------------------------------------------------------------------------
+    subtype   W_ELEM_TYPE     is std_logic_vector(W_PARAM.ELEM_BITS-1 downto 0);
+    type      W_ELEM_VECTOR   is array(0 to W_PARAM.SHAPE.Y.SIZE-1,
+                                       0 to W_PARAM.SHAPE.X.SIZE-1,
+                                       0 to W_PARAM.SHAPE.D.SIZE-1,
+                                       0 to W_PARAM.SHAPE.C.SIZE-1) of W_ELEM_TYPE;
+    signal    w_element       :  W_ELEM_VECTOR;
+    signal    w_c_valid       :  std_logic_vector(W_PARAM.SHAPE.C.SIZE-1 downto 0);
+    -------------------------------------------------------------------------------
+    --
+    -------------------------------------------------------------------------------
     subtype   O_ELEM_TYPE     is std_logic_vector(O_PARAM.ELEM_BITS-1 downto 0);
     type      O_ELEM_VECTOR   is array(0 to O_PARAM.SHAPE.Y.SIZE-1,
                                        0 to O_PARAM.SHAPE.X.SIZE-1,
                                        0 to O_PARAM.SHAPE.D.SIZE-1,
                                        0 to O_PARAM.SHAPE.C.SIZE-1) of O_ELEM_TYPE;
     signal    o_element       :  O_ELEM_VECTOR;
-    signal    o_c_valid       :  std_logic_vector(O_PARAM.SHAPE.C.SIZE-1 downto 0);
     -------------------------------------------------------------------------------
     --
     -------------------------------------------------------------------------------
-    signal    q_data          :  std_logic_vector(O_PARAM.DATA.SIZE-1    downto 0);
+    signal    q_data          :  std_logic_vector(O_PARAM.DATA.SIZE-1 downto 0);
+    signal    q_valid         :  std_logic;
+    signal    q_ready         :  std_logic;
 begin
     -------------------------------------------------------------------------------
-    -- i_element : 入力パイプラインデータを要素ごとの配列に変換
-    -- i_c_valid : 入力パイプラインデータのチャネル有効信号
+    -- i_element : 入力パイプラインイメージデータを要素ごとの配列に変換
+    -- i_c_valid : 入力パイプラインイメージデータのチャネル有効信号
     -------------------------------------------------------------------------------
     process (I_DATA) begin
         for y in 0 to I_PARAM.SHAPE.Y.SIZE-1 loop
@@ -173,58 +202,58 @@ begin
         i_c_valid <= I_DATA(I_PARAM.DATA.ATRB_FIELD.C.VALID.HI downto I_PARAM.DATA.ATRB_FIELD.C.VALID.LO);
     end process;
     -------------------------------------------------------------------------------
-    -- o_element : 加算結果
-    -- o_c_valid : チャネル有効情報
+    -- w_element : 入力パイプライン重みデータを要素ごとの配列に変換
+    -- w_c_valid : 入力パイプライン重みデータのチャネル有効信号
     -------------------------------------------------------------------------------
-    process(i_element, i_c_valid)
-        variable a_c_valid :  std_logic;
-        variable a_element :  std_logic_vector(I_PARAM.ELEM_BITS-1 downto 0);
-        variable b_c_valid :  std_logic;
-        variable b_element :  std_logic_vector(I_PARAM.ELEM_BITS-1 downto 0);
+    process (W_DATA) begin
+        for y in 0 to W_PARAM.SHAPE.Y.SIZE-1 loop
+        for x in 0 to W_PARAM.SHAPE.X.SIZE-1 loop
+        for d in 0 to W_PARAM.SHAPE.D.SIZE-1 loop
+        for c in 0 to W_PARAM.SHAPE.C.SIZE-1 loop
+            w_element(y,x,d,c) <= GET_ELEMENT_FROM_DATA(W_PARAM, c, d, x, y, W_DATA);
+        end loop;
+        end loop;
+        end loop;
+        end loop;
+        w_c_valid <= W_DATA(W_PARAM.DATA.ATRB_FIELD.C.VALID.HI downto W_PARAM.DATA.ATRB_FIELD.C.VALID.LO);
+    end process;
+    -------------------------------------------------------------------------------
+    -- o_element : 乗算結果
+    -------------------------------------------------------------------------------
+    process(i_element, i_c_valid, w_element, w_c_valid)
+        variable i_elem  :  I_ELEM_TYPE;
+        variable w_elem  :  W_ELEM_TYPE;
     begin
         for y in 0 to O_PARAM.SHAPE.Y.SIZE-1 loop
         for x in 0 to O_PARAM.SHAPE.X.SIZE-1 loop
         for d in 0 to O_PARAM.SHAPE.D.SIZE-1 loop
         for c in 0 to O_PARAM.SHAPE.C.SIZE-1 loop
-            if (c*2+0 < I_PARAM.SHAPE.C.SIZE) then
-                a_element  := i_element(y,x,d,c*2+0);
+            if (i_c_valid(c) = '1') then
+                i_elem := i_element(y,x,d,c);
             else
-                a_element  := (others => '0');
+                i_elem := (others => '0');
             end if;
-            if (c*2+1 < I_PARAM.SHAPE.C.SIZE) then
-                b_element  := i_element(y,x,d,c*2+1);
+            if (w_c_valid(c) = '1') then
+                w_elem := w_element(y,x,d,c);
             else
-                b_element  := (others => '0');
+                w_elem := (others => '0');
             end if;
             if (SIGN) then
-                o_element(y,x,d,c) <= std_logic_vector(resize(to_01(  signed(a_element)), O_PARAM.ELEM_BITS) +
-                                                       resize(to_01(  signed(b_element)), O_PARAM.ELEM_BITS));
+                o_element(y,x,d,c) <= std_logic_vector(to_01(  signed(i_elem)) *
+                                                       to_01(  signed(w_elem)));
             else
-                o_element(y,x,d,c) <= std_logic_vector(resize(to_01(unsigned(a_element)), O_PARAM.ELEM_BITS) +
-                                                       resize(to_01(unsigned(b_element)), O_PARAM.ELEM_BITS));
+                o_element(y,x,d,c) <= std_logic_vector(to_01(unsigned(i_elem)) *
+                                                       to_01(unsigned(w_elem)));
             end if;
         end loop;
         end loop;
         end loop;
-        end loop;
-        for c in 0 to O_PARAM.SHAPE.C.SIZE-1 loop
-            if (c*2+0 < I_PARAM.SHAPE.C.SIZE) then
-                a_c_valid := i_c_valid(c*2+0);
-            else
-                a_c_valid := '0';
-            end if;
-            if (c*2+1 < I_PARAM.SHAPE.C.SIZE) then
-                b_c_valid := i_c_valid(c*2+1);
-            else
-                b_c_valid := '0';
-            end if;
-            o_c_valid(c) <= a_c_valid or b_c_valid;
         end loop;
     end process;
     -------------------------------------------------------------------------------
     -- q_data    : パイプラインレジスタに入力するデータ
     -------------------------------------------------------------------------------
-    process (o_element, o_c_valid, I_DATA)
+    process (o_element, I_DATA)
         variable data :  std_logic_vector(O_PARAM.DATA.SIZE-1 downto 0);
     begin
         for y in 0 to O_PARAM.SHAPE.Y.SIZE-1 loop
@@ -236,17 +265,18 @@ begin
         end loop;        
         end loop;        
         end loop;
-        data(O_PARAM.DATA.ATRB_FIELD.C.VALID.HI downto O_PARAM.DATA.ATRB_FIELD.C.VALID.LO) := o_c_valid;
-        data(O_PARAM.DATA.ATRB_FIELD.C.START_POS)                                          := I_DATA(I_PARAM.DATA.ATRB_FIELD.C.START_POS);
-        data(O_PARAM.DATA.ATRB_FIELD.C.LAST_POS )                                          := I_DATA(I_PARAM.DATA.ATRB_FIELD.C.LAST_POS );
-        data(O_PARAM.DATA.ATRB_FIELD.D.HI downto O_PARAM.DATA.ATRB_FIELD.D.LO) := I_DATA(I_PARAM.DATA.ATRB_FIELD.D.HI downto I_PARAM.DATA.ATRB_FIELD.D.LO);
-        data(O_PARAM.DATA.ATRB_FIELD.X.HI downto O_PARAM.DATA.ATRB_FIELD.X.LO) := I_DATA(I_PARAM.DATA.ATRB_FIELD.X.HI downto I_PARAM.DATA.ATRB_FIELD.X.LO);
-        data(O_PARAM.DATA.ATRB_FIELD.Y.HI downto O_PARAM.DATA.ATRB_FIELD.Y.LO) := I_DATA(I_PARAM.DATA.ATRB_FIELD.Y.HI downto I_PARAM.DATA.ATRB_FIELD.Y.LO);
+        data(O_PARAM.DATA.ATRB_FIELD.HI downto O_PARAM.DATA.ATRB_FIELD.LO) := I_DATA(I_PARAM.DATA.ATRB_FIELD.HI downto I_PARAM.DATA.ATRB_FIELD.LO);
         if (O_PARAM.INFO_BITS > 0) then
             data(O_PARAM.DATA.INFO_FIELD.HI downto O_PARAM.DATA.INFO_FIELD.LO) := I_DATA(I_PARAM.DATA.INFO_FIELD.HI   downto I_PARAM.DATA.INFO_FIELD.LO  );
         end if;
         q_data <= data;
     end process;
+    -------------------------------------------------------------------------------
+    -- q_valid   : 
+    -------------------------------------------------------------------------------
+    q_valid <= '1' when (I_VALID = '1' and W_VALID = '1') else '0';
+    I_READY <= '1' when (q_valid = '1' and q_ready = '1') else '0';
+    W_READY <= '1' when (q_valid = '1' and q_ready = '1') else '0';
     -------------------------------------------------------------------------------
     -- パイプラインレジスタ
     -------------------------------------------------------------------------------
@@ -260,8 +290,8 @@ begin
             RST         => RST               , -- In  :
             CLR         => CLR               , -- In  :
             I_WORD      => q_data            , -- In  :
-            I_VAL       => I_VALID           , -- In  :
-            I_RDY       => I_READY           , -- Out :
+            I_VAL       => q_valid           , -- In  :
+            I_RDY       => q_ready           , -- Out :
             Q_WORD      => O_DATA            , -- Out :
             Q_VAL       => O_VALID           , -- Out :
             Q_RDY       => O_READY           , -- In  :

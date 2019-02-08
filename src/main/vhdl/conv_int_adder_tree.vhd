@@ -2,7 +2,7 @@
 --!     @file    conv_int_adder_tree.vhd
 --!     @brief   Convolution Integer Adder Tree Module
 --!     @version 0.1.0
---!     @date    2019/1/18
+--!     @date    2019/2/4
 --!     @author  Ichiro Kawazome <ichiro_k@ca2.so-net.ne.jp>
 -----------------------------------------------------------------------------------
 --

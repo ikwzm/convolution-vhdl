@@ -2,7 +2,7 @@
 --!     @file    conv_types.vhd
 --!     @brief   Convolution Engine Types Package.
 --!     @version 0.1.0
---!     @date    2019/1/15
+--!     @date    2019/2/6
 --!     @author  Ichiro Kawazome <ichiro_k@ca2.so-net.ne.jp>
 -----------------------------------------------------------------------------------
 --
@@ -37,50 +37,65 @@
 library ieee;
 use     ieee.std_logic_1164.all;
 use     ieee.numeric_std.all;
+library PipeWork;
+use     PipeWork.IMAGE_TYPES.all;
 -----------------------------------------------------------------------------------
 --! @brief Convolution Engine で使用する各種タイプ/定数を定義しているパッケージ.
 -----------------------------------------------------------------------------------
 package CONV_TYPES is
     -------------------------------------------------------------------------------
-    --! @brief Vector(一次元) の各種パラメータを定義するレコードタイプ.
+    --! @brief Convolution Kernel の大きさを定義するレコードタイプ.
     -------------------------------------------------------------------------------
-    type      CONV_VECTOR_RANGE_TYPE is record
-                  LO                :  integer;  -- Vector のインデックスの最小値
-                  HI                :  integer;  -- Vector のインデックスの最大値
-                  SIZE              :  integer;  -- Vector の大きさ
+    type      CONV_KERNEL_SIZE_TYPE is record
+                  X                 :  IMAGE_VECTOR_RANGE_TYPE;
+                  Y                 :  IMAGE_VECTOR_RANGE_TYPE;
     end record;
     -------------------------------------------------------------------------------
-    --! @brief Vector(一次元) の各種パラメータを設定する関数群
+    --! @brief Convolution Kernel の大きさを設定する関数群
     -------------------------------------------------------------------------------
-    function  NEW_CONV_VECTOR_RANGE(LO,HI:integer) return CONV_VECTOR_RANGE_TYPE;
-    function  NEW_CONV_VECTOR_RANGE(SIZE :integer) return CONV_VECTOR_RANGE_TYPE;
+    function  NEW_CONV_KERNEL_SIZE(X_SIZE   ,Y_SIZE   :integer) return CONV_KERNEL_SIZE_TYPE;
+    function  NEW_CONV_KERNEL_SIZE(X_LO,X_HI,Y_LO,Y_HI:integer) return CONV_KERNEL_SIZE_TYPE;
+    constant  CONV_KERNEL_SIZE_1x1  :  CONV_KERNEL_SIZE_TYPE := NEW_CONV_KERNEL_SIZE(1,1);
+    constant  CONV_KERNEL_SIZE_3x3  :  CONV_KERNEL_SIZE_TYPE := NEW_CONV_KERNEL_SIZE(-1,1,-1,1);
 
     -------------------------------------------------------------------------------
-    --! @brief Convolution Window の形(各辺の大きさ)を定義するレコードタイプ.
+    --! @brief Image Data(一回の転送単位) の要素フィールドを定義するレコードタイプ.
     -------------------------------------------------------------------------------
-    type      CONV_SHAPE_PARAM_TYPE is record
-                  C                 :  CONV_VECTOR_RANGE_TYPE;  -- Input  Channel 配列の範囲
-                  D                 :  CONV_VECTOR_RANGE_TYPE;  -- Output Channel 配列の範囲
-                  X                 :  CONV_VECTOR_RANGE_TYPE;  -- X 方向の配列の範囲
-                  Y                 :  CONV_VECTOR_RANGE_TYPE;  -- Y 方向の配列の範囲
+    type      CONV_DATA_ELEM_FIELD_TYPE is record
+                  LO                :  integer;
+                  HI                :  integer;
+                  SIZE              :  integer;
+                  C_SIZE            :  integer;
+                  D_SIZE            :  integer;
+                  X_SIZE            :  integer;
+                  Y_SIZE            :  integer;
     end record;
-    -------------------------------------------------------------------------------
-    --! @brief Convolution Window の形(各辺の大きさ)を設定する関数群
-    -------------------------------------------------------------------------------
-    function  NEW_CONV_SHAPE_PARAM(C,D,X,Y:CONV_VECTOR_RANGE_TYPE) return CONV_SHAPE_PARAM_TYPE;
-    function  NEW_CONV_SHAPE_PARAM(C,D,X,Y:integer               ) return CONV_SHAPE_PARAM_TYPE;
 
     -------------------------------------------------------------------------------
     --! @brief Convolution Data(一回の転送単位) 内の各種属性のフィールドを定義するレコードタイプ.
     -------------------------------------------------------------------------------
-    type      CONV_DATA_ATRB_FIELD_TYPE is record
-                   VALID             :  CONV_VECTOR_RANGE_TYPE;
+    type      CONV_DATA_ATRB_CHANNEL_FIELD_TYPE is record
+                   VALID             :  IMAGE_VECTOR_RANGE_TYPE;
                    START_POS         :  integer;
                    LAST_POS          :  integer;
                    LO                :  integer;
                    HI                :  integer;
                    SIZE              :  integer;
     end record;
+
+    -------------------------------------------------------------------------------
+    --! @brief Convolution Data(一回の転送単位) の属性フィールドを定義するレコードタイプ.
+    -------------------------------------------------------------------------------
+    type      CONV_DATA_ATRB_FIELD_TYPE is record
+                  LO                :  integer;
+                  HI                :  integer;
+                  SIZE              :  integer;
+                  C                 :  CONV_DATA_ATRB_CHANNEL_FIELD_TYPE;
+                  D                 :  CONV_DATA_ATRB_CHANNEL_FIELD_TYPE;
+                  X                 :  CONV_DATA_ATRB_CHANNEL_FIELD_TYPE;
+                  Y                 :  CONV_DATA_ATRB_CHANNEL_FIELD_TYPE;
+    end record;
+
     -------------------------------------------------------------------------------
     --! @brief Convolution Data(一回の転送単位) の各種フィールドを定義するレコードタイプ.
     -------------------------------------------------------------------------------
@@ -88,47 +103,39 @@ package CONV_TYPES is
                   LO                :  integer;
                   HI                :  integer;
                   SIZE              :  integer;
-                  ELEM_FIELD        :  CONV_VECTOR_RANGE_TYPE;
-                  INFO_FIELD        :  CONV_VECTOR_RANGE_TYPE;
-                  ATRB_FIELD        :  CONV_VECTOR_RANGE_TYPE;
-                  ATRB_C_FIELD      :  CONV_DATA_ATRB_FIELD_TYPE;
-                  ATRB_D_FIELD      :  CONV_DATA_ATRB_FIELD_TYPE;
-                  ATRB_X_FIELD      :  CONV_DATA_ATRB_FIELD_TYPE;
-                  ATRB_Y_FIELD      :  CONV_DATA_ATRB_FIELD_TYPE;
+                  ELEM_FIELD        :  CONV_DATA_ELEM_FIELD_TYPE;
+                  ATRB_FIELD        :  CONV_DATA_ATRB_FIELD_TYPE;
+                  INFO_FIELD        :  IMAGE_VECTOR_RANGE_TYPE;
     end record;
 
     -------------------------------------------------------------------------------
     --! @brief Convolution Pipeline の各種パラメータを定義するレコードタイプ.
+    --!        Convolution Pipeline のデータには C(Input Channel),D(Output Channel)
+    --!        X,Yの４次元の要素が含まれている.
     -------------------------------------------------------------------------------
     type      CONV_PIPELINE_PARAM_TYPE is record
-                  ELEM_BITS         :  integer;               -- 1要素(Element)のビット数
-                  INFO_BITS         :  integer;               -- その他情報のビット数
-                  SHAPE             :  CONV_SHAPE_PARAM_TYPE; -- Window の形
-                  DATA              :  CONV_DATA_FIELD_TYPE;  -- Dataのフィールド情報
+                  ELEM_BITS         :  integer;                       -- 1要素(Element)のビット数
+                  INFO_BITS         :  integer;                       -- その他情報のビット数
+                  SHAPE             :  IMAGE_SHAPE_TYPE;              -- Convolution Stream の形
+                  STRIDE            :  IMAGE_STREAM_STRIDE_PARAM_TYPE;-- Convolution Stream の移動距離
+                  DATA              :  CONV_DATA_FIELD_TYPE;          -- Dataのフィールド情報
     end record;
     -------------------------------------------------------------------------------
-    --! @brief Convolution Pipeline の各種パラメータをを設定する関数群
+    --! @brief Convolution Pipeline の各種パラメータを設定する関数群
     -------------------------------------------------------------------------------
     function  NEW_CONV_PIPELINE_PARAM(
                   ELEM_BITS         :  integer;
-                  INFO_BITS         :  integer;
-                  SHAPE             :  CONV_SHAPE_PARAM_TYPE)
+                  INFO_BITS         :  integer := 0;
+                  SHAPE             :  IMAGE_SHAPE_TYPE;
+                  STRIDE            :  IMAGE_STREAM_STRIDE_PARAM_TYPE)
                   return               CONV_PIPELINE_PARAM_TYPE;
     function  NEW_CONV_PIPELINE_PARAM(
                   ELEM_BITS         :  integer;
-                  INFO_BITS         :  integer;
-                  C                 :  CONV_VECTOR_RANGE_TYPE;
-                  D                 :  CONV_VECTOR_RANGE_TYPE;
-                  X                 :  CONV_VECTOR_RANGE_TYPE;
-                  Y                 :  CONV_VECTOR_RANGE_TYPE)
-                  return               CONV_PIPELINE_PARAM_TYPE;
-    function  NEW_CONV_PIPELINE_PARAM(
-                  ELEM_BITS         :  integer;
-                  INFO_BITS         :  integer;
-                  C                 :  integer;
-                  D                 :  integer;
-                  X                 :  integer;
-                  Y                 :  integer)
+                  INFO_BITS         :  integer := 0;
+                  C                 :  integer := 1;
+                  D                 :  integer := 1;
+                  X                 :  integer := 1;
+                  Y                 :  integer := 1)
                   return               CONV_PIPELINE_PARAM_TYPE;
     -------------------------------------------------------------------------------
     --! @brief Convolution Pipeline Data から要素を取り出す関数
@@ -154,48 +161,70 @@ package CONV_TYPES is
         variable  DATA              :  inout std_logic_vector);
 
     -------------------------------------------------------------------------------
-    --! @brief Convolution D Channel Vector の各種パラメータを定義するレコードタイプ.
+    --! @brief Convolution の各種パラメータを定義するレコードタイプ.
     -------------------------------------------------------------------------------
-    type      CONV_D_VECTOR_PARAM_TYPE is record
-                  ELEM_BITS         :  integer;               -- 1要素(Element)のビット数
-                  INFO_BITS         :  integer;               -- その他情報のビット数
-                  SHAPE             :  CONV_SHAPE_PARAM_TYPE; -- Window の形
-                  DATA              :  CONV_DATA_FIELD_TYPE;  -- Dataのフィールド情報
+    type      CONV_PARAM_TYPE       is record
+                  KERNEL_SIZE       :  CONV_KERNEL_SIZE_TYPE;
+                  STRIDE            :  IMAGE_STREAM_STRIDE_PARAM_TYPE;
+                  I_STREAM          :  IMAGE_STREAM_PARAM_TYPE;  -- イメージ入力側の IMAGE_STREAM パラメータ
+                  I_SHAPE           :  IMAGE_SHAPE_TYPE;         -- イメージ入力側の IMAGE_SHAPE  パラメータ
+                  O_STREAM          :  IMAGE_STREAM_PARAM_TYPE;  -- イメージ出力側の IMAGE_STREAM パラメータ
+                  O_SHAPE           :  IMAGE_SHAPE_TYPE;         -- イメージ出力側の IMAGE_SHAPE  パラメータ
+                  A_STREAM          :  IMAGE_STREAM_PARAM_TYPE;  -- 内部バッファの   IMAGE_STREAM パラメータ
+                  A_SHAPE           :  IMAGE_SHAPE_TYPE;         -- 内部バッファの   IMAGE_SHAPE  パラメータ
+                  B_STREAM          :  IMAGE_STREAM_PARAM_TYPE;  -- バイアス入力の   IMAGE_STREAM パラメータ
+                  W_STREAM          :  IMAGE_STREAM_PARAM_TYPE;  -- ウェイト入力の   IMAGE_STREAM パラメータ
+                  A_PIPELINE        :  CONV_PIPELINE_PARAM_TYPE; -- 内部のイメージ入力 Convolution Pipeline パラメータ
+                  B_PIPELINE        :  CONV_PIPELINE_PARAM_TYPE; -- 内部のバイアス入力 Convolution Pipeline パラメータ
+                  W_PIPELINE        :  CONV_PIPELINE_PARAM_TYPE; -- 内部のウェイト入力 Convolution Pipeline パラメータ
+                  M_PIPELINE        :  CONV_PIPELINE_PARAM_TYPE; -- 内部の乗算出力     Convolution Pipeline パラメータ
+                  O_PIPELINE        :  CONV_PIPELINE_PARAM_TYPE; -- 内部の積算出力     Convolution Pipeline パラメータ
+                  C_UNROLL          :  integer;
+                  D_UNROLL          :  integer;
+                  X_UNROLL          :  integer;
+                  Y_UNROLL          :  integer;
     end record;
     -------------------------------------------------------------------------------
-    --! @brief Convolution D Channel Vector の各種パラメータをを設定する関数群
+    --! @brief Convolution の各種パラメータを設定する関数
     -------------------------------------------------------------------------------
-    function  NEW_CONV_D_VECTOR_PARAM(
-                  ELEM_BITS         :  integer;
-                  INFO_BITS         :  integer;
-                  SHAPE             :  CONV_SHAPE_PARAM_TYPE)
-                  return               CONV_D_VECTOR_PARAM_TYPE;
-    function  NEW_CONV_D_VECTOR_PARAM(
-                  ELEM_BITS         :  integer;
-                  INFO_BITS         :  integer;
-                  D                 :  CONV_VECTOR_RANGE_TYPE)
-                  return               CONV_D_VECTOR_PARAM_TYPE;
-    function  NEW_CONV_D_VECTOR_PARAM(
-                  ELEM_BITS         :  integer;
-                  INFO_BITS         :  integer;
-                  D                 :  integer)
-                  return               CONV_D_VECTOR_PARAM_TYPE;
+    function  NEW_CONV_PARAM(
+                  KERNEL_SIZE       :  CONV_KERNEL_SIZE_TYPE;
+                  STRIDE            :  IMAGE_STREAM_STRIDE_PARAM_TYPE;
+                  I_STREAM          :  IMAGE_STREAM_PARAM_TYPE;
+                  I_SHAPE           :  IMAGE_SHAPE_TYPE;
+                  B_ELEM_BITS       :  integer ;
+                  W_ELEM_BITS       :  integer ;
+                  M_ELEM_BITS       :  integer ;
+                  O_ELEM_BITS       :  integer ;
+                  O_SHAPE_C         :  IMAGE_SHAPE_SIDE_TYPE;
+                  C_UNROLL          :  integer := 1;
+                  D_UNROLL          :  integer := 1;
+                  X_UNROLL          :  integer := 1;
+                  Y_UNROLL          :  integer := 1;
+                  X_BORDER          :  IMAGE_STREAM_BORDER_TYPE := IMAGE_STREAM_BORDER_NONE;
+                  Y_BORDER          :  IMAGE_STREAM_BORDER_TYPE := IMAGE_STREAM_BORDER_NONE)
+                  return               CONV_PARAM_TYPE;
+
     -------------------------------------------------------------------------------
-    --! @brief Convolution D Vector Data から要素を取り出す関数
+    --! @brief イメージ入力 Stream を Convolution Pipeline に変換する関数
     -------------------------------------------------------------------------------
-    function  GET_ELEMENT_FROM_DATA(
-                  PARAM             :  CONV_D_VECTOR_PARAM_TYPE;
-                  D                 :  integer;
-                  DATA              :  std_logic_vector)
+    function  CONV_PIPELINE_FROM_IMAGE_STREAM(
+                  PIPELINE_PARAM    :  CONV_PIPELINE_PARAM_TYPE;
+                  STREAM_PARAM      :  IMAGE_STREAM_PARAM_TYPE;
+                  KERNEL_SIZE       :  CONV_KERNEL_SIZE_TYPE;
+                  STRIDE            :  IMAGE_STREAM_STRIDE_PARAM_TYPE;
+                  STREAM_DATA       :  std_logic_vector)
                   return               std_logic_vector;
+
     -------------------------------------------------------------------------------
-    --! @brief Convolution D Vector Data に要素を追加するプロシージャ
+    --! @brief ウェイト入力 Stream を Convolution Pipeline に変換する関数
     -------------------------------------------------------------------------------
-    procedure SET_ELEMENT_TO_DATA(
-                  PARAM             :  in    CONV_D_VECTOR_PARAM_TYPE;
-                  D                 :  in    integer;
-                  ELEMENT           :  in    std_logic_vector;
-        variable  DATA              :  inout std_logic_vector);
+    function  CONV_PIPELINE_FROM_WEIGHT_STREAM(
+                  PIPELINE_PARAM    :  CONV_PIPELINE_PARAM_TYPE;
+                  STREAM_PARAM      :  IMAGE_STREAM_PARAM_TYPE;
+                  KERNEL_SIZE       :  CONV_KERNEL_SIZE_TYPE;
+                  STREAM_DATA       :  std_logic_vector)
+                  return               std_logic_vector;
 end CONV_TYPES;
 -----------------------------------------------------------------------------------
 --! @brief Image の各種タイプ/定数を定義しているパッケージ.
@@ -203,67 +232,60 @@ end CONV_TYPES;
 library ieee;
 use     ieee.std_logic_1164.all;
 use     ieee.numeric_std.all;
+library PipeWork;
+use     PipeWork.IMAGE_TYPES.all;
 package body CONV_TYPES is
     -------------------------------------------------------------------------------
-    --! @brief Vector(一次元) の各種パラメータを設定する関数
+    --! @brief Convolution Kernel の大きさを設定する関数群
     -------------------------------------------------------------------------------
-    function  NEW_CONV_VECTOR_RANGE(LO,HI:integer) return CONV_VECTOR_RANGE_TYPE
-    is
-        variable param :  CONV_VECTOR_RANGE_TYPE;
+    function  NEW_CONV_KERNEL_SIZE(X_SIZE   ,Y_SIZE   :integer) return CONV_KERNEL_SIZE_TYPE is
+        variable  kernel_size  :  CONV_KERNEL_SIZE_TYPE;
     begin
-        param.LO   := LO;
-        param.HI   := HI;
-        param.SIZE := HI-LO+1;
-        return param;
+        kernel_size.X := NEW_IMAGE_VECTOR_RANGE(X_SIZE);
+        kernel_size.Y := NEW_IMAGE_VECTOR_RANGE(Y_SIZE);
+        return kernel_size;
     end function;
-    -------------------------------------------------------------------------------
-    --! @brief Vector(一次元) の各種パラメータを設定する関数
-    -------------------------------------------------------------------------------
-    function  NEW_CONV_VECTOR_RANGE(SIZE:integer) return CONV_VECTOR_RANGE_TYPE
-    is
-        variable param :  CONV_VECTOR_RANGE_TYPE;
+
+    function  NEW_CONV_KERNEL_SIZE(X_LO,X_HI,Y_LO,Y_HI:integer) return CONV_KERNEL_SIZE_TYPE is
+        variable  kernel_size  :  CONV_KERNEL_SIZE_TYPE;
     begin
-        return NEW_CONV_VECTOR_RANGE(0, SIZE-1);
+        kernel_size.X := NEW_IMAGE_VECTOR_RANGE(X_LO, X_HI);
+        kernel_size.Y := NEW_IMAGE_VECTOR_RANGE(Y_LO, Y_HI);
+        return kernel_size;
     end function;
 
     -------------------------------------------------------------------------------
-    --! @brief Convolution Window の形(各辺の大きさ)を設定する関数
+    --! @brief Convolution Data(一回の転送単位) 内の要素フィールドパラメータを設定する関数
     -------------------------------------------------------------------------------
-    function  NEW_CONV_SHAPE_PARAM(C,D,X,Y:CONV_VECTOR_RANGE_TYPE) return CONV_SHAPE_PARAM_TYPE
+    function  NEW_CONV_DATA_ELEM_FIELD(
+                  LO        :  integer;
+                  ELEM_BITS :  integer;
+                  SHAPE     :  IMAGE_SHAPE_TYPE)
+                  return       CONV_DATA_ELEM_FIELD_TYPE
     is
-        variable param :  CONV_SHAPE_PARAM_TYPE;
+        variable  elem_field:  CONV_DATA_ELEM_FIELD_TYPE;
     begin
-        param.C := C;
-        param.D := D;
-        param.X := X;
-        param.Y := Y;
-        return param;
-    end function;
-    -------------------------------------------------------------------------------
-    --! @brief Convolution Window の形(各辺の大きさ)を設定する関数
-    -------------------------------------------------------------------------------
-    function  NEW_CONV_SHAPE_PARAM(C,D,X,Y:integer               ) return CONV_SHAPE_PARAM_TYPE
-    is
-    begin
-        return  NEW_CONV_SHAPE_PARAM(
-                    C => NEW_CONV_VECTOR_RANGE(C),
-                    D => NEW_CONV_VECTOR_RANGE(D),
-                    X => NEW_CONV_VECTOR_RANGE(X),
-                    Y => NEW_CONV_VECTOR_RANGE(Y)
-                    );
+        elem_field.C_SIZE := 1;
+        elem_field.D_SIZE := 1 * SHAPE.C.SIZE;
+        elem_field.X_SIZE := 1 * SHAPE.C.SIZE * SHAPE.D.SIZE;
+        elem_field.Y_SIZE := 1 * SHAPE.C.SIZE * SHAPE.D.SIZE * SHAPE.X.SIZE;
+        elem_field.SIZE   := 1 * SHAPE.C.SIZE * SHAPE.D.SIZE * SHAPE.X.SIZE * SHAPE.Y.SIZE * ELEM_BITS;
+        elem_field.LO     := 0;
+        elem_field.HI     := elem_field.SIZE-1;
+        return elem_field;
     end function;
 
     -------------------------------------------------------------------------------
     --! @brief Convolution Data(一回の転送単位) 内の各種属性のフィールドパラメータを設定する関数
     -------------------------------------------------------------------------------
-    function  NEW_CONV_DATA_ATRB_FIELD(
-                  PREV_HI   :  integer;
+    function  NEW_CONV_DATA_ATRB_CHANNEL_FIELD(
+                  LO        :  integer;
                   SIZE      :  integer)
-                  return       CONV_DATA_ATRB_FIELD_TYPE
+                  return       CONV_DATA_ATRB_CHANNEL_FIELD_TYPE
     is
-        variable param      :  CONV_DATA_ATRB_FIELD_TYPE;
+        variable param      :  CONV_DATA_ATRB_CHANNEL_FIELD_TYPE;
     begin
-        param.VALID.LO  := PREV_HI+1;
+        param.VALID.LO  := LO;
         param.VALID.HI  := param.VALID.LO  + SIZE-1;
         param.START_POS := param.VALID.HI  + 1;
         param.LAST_POS  := param.START_POS + 1;
@@ -274,29 +296,44 @@ package body CONV_TYPES is
     end function;
 
     -------------------------------------------------------------------------------
+    --! @brief Convolution Data(一回の転送単位) 内の各種属性のフィールドパラメータを設定する関数
+    -------------------------------------------------------------------------------
+    function  NEW_CONV_DATA_ATRB_FIELD(
+                  LO        :  integer;
+                  SHAPE     :  IMAGE_SHAPE_TYPE)
+                  return       CONV_DATA_ATRB_FIELD_TYPE
+    is
+        variable param      :  CONV_DATA_ATRB_FIELD_TYPE;
+    begin
+        param.LO   := LO;
+        param.C    := NEW_CONV_DATA_ATRB_CHANNEL_FIELD(param.LO    , SHAPE.C.SIZE);
+        param.D    := NEW_CONV_DATA_ATRB_CHANNEL_FIELD(param.C.HI+1, SHAPE.D.SIZE);
+        param.X    := NEW_CONV_DATA_ATRB_CHANNEL_FIELD(param.D.HI+1, SHAPE.X.SIZE);
+        param.Y    := NEW_CONV_DATA_ATRB_CHANNEL_FIELD(param.X.HI+1, SHAPE.Y.SIZE);
+        param.HI   := param.Y.HI;
+        param.SIZE := param.HI - param.LO + 1;
+        return param;
+    end function;
+
+    -------------------------------------------------------------------------------
     --! @brief Convolution Data(一回の転送単位) の各種フィールドを定義する関数
     -------------------------------------------------------------------------------
     function  NEW_CONV_DATA_FIELD(
                   ELEM_BITS  :  integer;
                   INFO_BITS  :  integer;
-                  SHAPE      :  CONV_SHAPE_PARAM_TYPE)
+                  SHAPE      :  IMAGE_SHAPE_TYPE)
                   return        CONV_DATA_FIELD_TYPE
     is
         variable  param      :  CONV_DATA_FIELD_TYPE;
     begin
-        param.ELEM_FIELD     := NEW_CONV_VECTOR_RANGE(ELEM_BITS);
-        param.ATRB_C_FIELD   := NEW_CONV_DATA_ATRB_FIELD(param.ELEM_FIELD.HI  , SHAPE.C.SIZE);
-        param.ATRB_D_FIELD   := NEW_CONV_DATA_ATRB_FIELD(param.ATRB_C_FIELD.HI, SHAPE.D.SIZE);
-        param.ATRB_X_FIELD   := NEW_CONV_DATA_ATRB_FIELD(param.ATRB_D_FIELD.HI, SHAPE.X.SIZE);
-        param.ATRB_Y_FIELD   := NEW_CONV_DATA_ATRB_FIELD(param.ATRB_X_FIELD.HI, SHAPE.Y.SIZE);
-        param.ATRB_FIELD     := NEW_CONV_VECTOR_RANGE(param.ATRB_C_FIELD.LO,
-                                                      param.ATRB_Y_FIELD.HI);
-        param.LO             := param.ELEM_FIELD.LO;
+        param.LO             := 0;
+        param.ELEM_FIELD     := NEW_CONV_DATA_ELEM_FIELD(param.LO, ELEM_BITS  , SHAPE);
+        param.ATRB_FIELD     := NEW_CONV_DATA_ATRB_FIELD(param.ELEM_FIELD.HI+1, SHAPE);
         if (INFO_BITS > 0) then
-            param.INFO_FIELD := NEW_CONV_VECTOR_RANGE(param.ATRB_FIELD.HI+1, param.ATRB_FIELD.HI+INFO_BITS);
+            param.INFO_FIELD := NEW_IMAGE_VECTOR_RANGE(param.ATRB_FIELD.HI+1, param.ATRB_FIELD.HI+INFO_BITS);
             param.HI         := param.INFO_FIELD.HI;
         else
-            param.INFO_FIELD := NEW_CONV_VECTOR_RANGE(0);
+            param.INFO_FIELD := NEW_IMAGE_VECTOR_RANGE(0);
             param.HI         := param.ATRB_FIELD.HI;
         end if;
         param.SIZE           := param.HI - param.LO + 1;
@@ -304,12 +341,13 @@ package body CONV_TYPES is
     end function;
 
     -------------------------------------------------------------------------------
-    --! @brief Convolution Pipeline の各種パラメータをを設定する関数
+    --! @brief Convolution Pipeline の各種パラメータを設定する関数
     -------------------------------------------------------------------------------
     function  NEW_CONV_PIPELINE_PARAM(
                   ELEM_BITS  :  integer;
-                  INFO_BITS  :  integer;
-                  SHAPE      :  CONV_SHAPE_PARAM_TYPE)
+                  INFO_BITS  :  integer := 0;
+                  SHAPE      :  IMAGE_SHAPE_TYPE;
+                  STRIDE     :  IMAGE_STREAM_STRIDE_PARAM_TYPE)
                   return        CONV_PIPELINE_PARAM_TYPE
     is
         variable  param      :  CONV_PIPELINE_PARAM_TYPE;
@@ -317,49 +355,32 @@ package body CONV_TYPES is
         param.ELEM_BITS      := ELEM_BITS;
         param.INFO_BITS      := INFO_BITS;
         param.SHAPE          := SHAPE;
+        param.STRIDE         := STRIDE;
         param.DATA           := NEW_CONV_DATA_FIELD(
-                                    ELEM_BITS => param.ELEM_BITS * param.SHAPE.C.SIZE * param.SHAPE.D.SIZE * param.SHAPE.X.SIZE * param.SHAPE.Y.SIZE,
+                                    ELEM_BITS => param.ELEM_BITS,
                                     INFO_BITS => param.INFO_BITS,
                                     SHAPE     => param.SHAPE
                                 );
         return param;
     end function;
     -------------------------------------------------------------------------------
-    --! @brief Convolution Pipeline の各種パラメータをを設定する関数(簡易版)
+    --! @brief Convolution Pipeline の各種パラメータを設定する関数(簡易版)
     -------------------------------------------------------------------------------
     function  NEW_CONV_PIPELINE_PARAM(
                   ELEM_BITS  :  integer;
-                  INFO_BITS  :  integer;
-                  C          :  CONV_VECTOR_RANGE_TYPE;
-                  D          :  CONV_VECTOR_RANGE_TYPE;
-                  X          :  CONV_VECTOR_RANGE_TYPE;
-                  Y          :  CONV_VECTOR_RANGE_TYPE)
+                  INFO_BITS  :  integer := 0;
+                  C          :  integer := 1;
+                  D          :  integer := 1;
+                  X          :  integer := 1;
+                  Y          :  integer := 1)
                   return        CONV_PIPELINE_PARAM_TYPE
     is
     begin
         return NEW_CONV_PIPELINE_PARAM(
                   ELEM_BITS  => ELEM_BITS,
                   INFO_BITS  => INFO_BITS,
-                  SHAPE      => NEW_CONV_SHAPE_PARAM(C,D,X,Y)
-               );
-    end function;
-    -------------------------------------------------------------------------------
-    --! @brief Convolution Pipeline の各種パラメータをを設定する関数(簡易版)
-    -------------------------------------------------------------------------------
-    function  NEW_CONV_PIPELINE_PARAM(
-                  ELEM_BITS  :  integer;
-                  INFO_BITS  :  integer;
-                  C          :  integer;
-                  D          :  integer;
-                  X          :  integer;
-                  Y          :  integer)
-                  return        CONV_PIPELINE_PARAM_TYPE
-    is
-    begin
-        return NEW_CONV_PIPELINE_PARAM(
-                  ELEM_BITS  => ELEM_BITS,
-                  INFO_BITS  => INFO_BITS,
-                  SHAPE      => NEW_CONV_SHAPE_PARAM(C,D,X,Y)
+                  SHAPE      => NEW_IMAGE_SHAPE_CONSTANT(ELEM_BITS,C,D,X,Y),
+                  STRIDE     => NEW_IMAGE_STREAM_STRIDE_PARAM(1,1)
                );
     end function;
 
@@ -378,20 +399,16 @@ package body CONV_TYPES is
         alias     input_data :  std_logic_vector(PARAM.DATA.SIZE           -1 downto 0) is DATA;
         variable  elem_data  :  std_logic_vector(PARAM.DATA.ELEM_FIELD.SIZE-1 downto 0);
         variable  element    :  std_logic_vector(PARAM.ELEM_BITS           -1 downto 0);
-        constant  Y_SIZE     :  integer := PARAM.SHAPE.X.SIZE*PARAM.SHAPE.D.SIZE*PARAM.SHAPE.C.SIZE*1;
-        constant  X_SIZE     :  integer :=                    PARAM.SHAPE.D.SIZE*PARAM.SHAPE.C.SIZE*1;
-        constant  D_SIZE     :  integer :=                                       PARAM.SHAPE.C.SIZE*1;
-        constant  C_SIZE     :  integer :=                                                          1;
     begin
         elem_data := input_data(PARAM.DATA.ELEM_FIELD.HI downto PARAM.DATA.ELEM_FIELD.LO);
-        element   := elem_data(((Y-PARAM.SHAPE.Y.LO)*Y_SIZE +
-                                (X-PARAM.SHAPE.X.LO)*X_SIZE +
-                                (D-PARAM.SHAPE.D.LO)*D_SIZE +
-                                (C-PARAM.SHAPE.C.LO)*C_SIZE + 1)*PARAM.ELEM_BITS-1 downto
-                               ((Y-PARAM.SHAPE.Y.LO)*Y_SIZE +
-                                (X-PARAM.SHAPE.X.LO)*X_SIZE +
-                                (D-PARAM.SHAPE.D.LO)*D_SIZE +
-                                (C-PARAM.SHAPE.C.LO)*C_SIZE    )*PARAM.ELEM_BITS);
+        element   := elem_data(((Y-PARAM.SHAPE.Y.LO)*PARAM.DATA.ELEM_FIELD.Y_SIZE +
+                                (X-PARAM.SHAPE.X.LO)*PARAM.DATA.ELEM_FIELD.X_SIZE +
+                                (D-PARAM.SHAPE.D.LO)*PARAM.DATA.ELEM_FIELD.D_SIZE +
+                                (C-PARAM.SHAPE.C.LO)*PARAM.DATA.ELEM_FIELD.C_SIZE + 1)*PARAM.ELEM_BITS-1 downto
+                               ((Y-PARAM.SHAPE.Y.LO)*PARAM.DATA.ELEM_FIELD.Y_SIZE +
+                                (X-PARAM.SHAPE.X.LO)*PARAM.DATA.ELEM_FIELD.X_SIZE +
+                                (D-PARAM.SHAPE.D.LO)*PARAM.DATA.ELEM_FIELD.D_SIZE +
+                                (C-PARAM.SHAPE.C.LO)*PARAM.DATA.ELEM_FIELD.C_SIZE    )*PARAM.ELEM_BITS);
         return element;
     end function;
 
@@ -407,114 +424,601 @@ package body CONV_TYPES is
                   ELEMENT    :  in    std_logic_vector;
         variable  DATA       :  inout std_logic_vector)
     is
-        constant  Y_SIZE     :  integer := PARAM.SHAPE.X.SIZE*PARAM.SHAPE.D.SIZE*PARAM.SHAPE.C.SIZE*1;
-        constant  X_SIZE     :  integer :=                    PARAM.SHAPE.D.SIZE*PARAM.SHAPE.C.SIZE*1;
-        constant  D_SIZE     :  integer :=                                       PARAM.SHAPE.C.SIZE*1;
-        constant  C_SIZE     :  integer :=                                                          1;
     begin
-        DATA(((Y-PARAM.SHAPE.Y.LO)*Y_SIZE +
-              (X-PARAM.SHAPE.X.LO)*X_SIZE +
-              (D-PARAM.SHAPE.D.LO)*D_SIZE +
-              (C-PARAM.SHAPE.C.LO)*C_SIZE + 1)*PARAM.ELEM_BITS -1 + PARAM.DATA.ELEM_FIELD.LO downto
-             ((Y-PARAM.SHAPE.Y.LO)*Y_SIZE +
-              (X-PARAM.SHAPE.X.LO)*X_SIZE +
-              (D-PARAM.SHAPE.D.LO)*D_SIZE +
-              (C-PARAM.SHAPE.C.LO)*C_SIZE    )*PARAM.ELEM_BITS    + PARAM.DATA.ELEM_FIELD.LO) := ELEMENT;
+        DATA(((Y-PARAM.SHAPE.Y.LO)*PARAM.DATA.ELEM_FIELD.Y_SIZE +
+              (X-PARAM.SHAPE.X.LO)*PARAM.DATA.ELEM_FIELD.X_SIZE +
+              (D-PARAM.SHAPE.D.LO)*PARAM.DATA.ELEM_FIELD.D_SIZE +
+              (C-PARAM.SHAPE.C.LO)*PARAM.DATA.ELEM_FIELD.C_SIZE + 1)*PARAM.ELEM_BITS -1 + PARAM.DATA.ELEM_FIELD.LO downto
+             ((Y-PARAM.SHAPE.Y.LO)*PARAM.DATA.ELEM_FIELD.Y_SIZE +
+              (X-PARAM.SHAPE.X.LO)*PARAM.DATA.ELEM_FIELD.X_SIZE +
+              (D-PARAM.SHAPE.D.LO)*PARAM.DATA.ELEM_FIELD.D_SIZE +
+              (C-PARAM.SHAPE.C.LO)*PARAM.DATA.ELEM_FIELD.C_SIZE    )*PARAM.ELEM_BITS    + PARAM.DATA.ELEM_FIELD.LO) := ELEMENT;
     end procedure;
 
-    -------------------------------------------------------------------------------
-    --! @brief Convolution D Channel Vector の各種パラメータをを設定する関数
-    -------------------------------------------------------------------------------
-    function  NEW_CONV_D_VECTOR_PARAM(
-                  ELEM_BITS  :  integer;
-                  INFO_BITS  :  integer;
-                  SHAPE      :  CONV_SHAPE_PARAM_TYPE)
-                  return        CONV_D_VECTOR_PARAM_TYPE
+    function  UPDATE_IMAGE_SHAPE_SIDE(
+                  I_SHAPE_SIDE      :  IMAGE_SHAPE_SIDE_TYPE;
+                  BORDER_TYPE       :  IMAGE_STREAM_BORDER_TYPE;
+                  KERNEL_LO         :  integer;
+                  KERNEL_HI         :  integer;
+                  FORCE_DATA_ATRB   :  boolean := FALSE)
+                  return               IMAGE_SHAPE_SIDE_TYPE
     is
-        variable  param      :  CONV_D_VECTOR_PARAM_TYPE;
+        variable  o_shape_side      :  IMAGE_SHAPE_SIDE_TYPE;
+        variable  data_atrb         :  boolean;
     begin
-        param.ELEM_BITS      := ELEM_BITS;
-        param.INFO_BITS      := INFO_BITS;
-        param.SHAPE          := SHAPE;
-        param.DATA           := NEW_CONV_DATA_FIELD(
-                                    ELEM_BITS => param.ELEM_BITS * param.SHAPE.D.SIZE,
-                                    INFO_BITS => param.INFO_BITS,
-                                    SHAPE     => param.SHAPE
-                                );
+        if (FORCE_DATA_ATRB) then
+            data_atrb := TRUE;
+        else
+            data_atrb := I_SHAPE_SIDE.DATA_ATRB;
+        end if;
+        if I_SHAPE_SIDE.DICIDE_TYPE = IMAGE_SHAPE_SIDE_DICIDE_CONSTANT then
+            if BORDER_TYPE = IMAGE_STREAM_BORDER_NONE then
+                o_shape_side := NEW_IMAGE_SHAPE_SIDE_CONSTANT(I_SHAPE_SIDE.SIZE-(KERNEL_HI-KERNEL_LO), data_atrb);
+            else
+                o_shape_side := NEW_IMAGE_SHAPE_SIDE_CONSTANT(I_SHAPE_SIDE.SIZE, data_atrb);
+            end if;
+        else
+                o_shape_side := NEW_IMAGE_SHAPE_SIDE_AUTO(I_SHAPE_SIDE.MAX_SIZE, data_atrb);
+        end if;
+        return o_shape_side;
+    end function;
+                 
+    -------------------------------------------------------------------------------
+    --! @brief Convolution の各種パラメータを設定する関数
+    -------------------------------------------------------------------------------
+    function  NEW_CONV_PARAM(
+                  KERNEL_SIZE       :  CONV_KERNEL_SIZE_TYPE;
+                  STRIDE            :  IMAGE_STREAM_STRIDE_PARAM_TYPE;
+                  I_STREAM          :  IMAGE_STREAM_PARAM_TYPE;
+                  I_SHAPE           :  IMAGE_SHAPE_TYPE;
+                  B_ELEM_BITS       :  integer ;
+                  W_ELEM_BITS       :  integer ;
+                  M_ELEM_BITS       :  integer ;
+                  O_ELEM_BITS       :  integer ;
+                  O_SHAPE_C         :  IMAGE_SHAPE_SIDE_TYPE;
+                  C_UNROLL          :  integer := 1;
+                  D_UNROLL          :  integer := 1;
+                  X_UNROLL          :  integer := 1;
+                  Y_UNROLL          :  integer := 1;
+                  X_BORDER          :  IMAGE_STREAM_BORDER_TYPE := IMAGE_STREAM_BORDER_NONE;
+                  Y_BORDER          :  IMAGE_STREAM_BORDER_TYPE := IMAGE_STREAM_BORDER_NONE)
+                  return               CONV_PARAM_TYPE
+    is
+        variable  param             :  CONV_PARAM_TYPE;
+        variable  a_shape_c         :  IMAGE_SHAPE_SIDE_TYPE; 
+        variable  a_shape_d         :  IMAGE_SHAPE_SIDE_TYPE; 
+        variable  a_shape_x         :  IMAGE_SHAPE_SIDE_TYPE; 
+        variable  a_shape_y         :  IMAGE_SHAPE_SIDE_TYPE;
+        variable  o_shape_d         :  IMAGE_SHAPE_SIDE_TYPE; 
+        variable  o_shape_x         :  IMAGE_SHAPE_SIDE_TYPE; 
+        variable  o_shape_y         :  IMAGE_SHAPE_SIDE_TYPE;
+        variable  a_stream_x_size   :  integer;
+        variable  a_stream_y_size   :  integer;
+        variable  pipeline_shape_c  :  IMAGE_SHAPE_SIDE_TYPE;
+        variable  pipeline_shape_d  :  IMAGE_SHAPE_SIDE_TYPE;
+        variable  pipeline_shape_x  :  IMAGE_SHAPE_SIDE_TYPE;
+        variable  pipeline_shape_y  :  IMAGE_SHAPE_SIDE_TYPE;
+        variable  pipeline_stride   :  IMAGE_STREAM_STRIDE_PARAM_TYPE;
+    begin
+        ---------------------------------------------------------------------------
+        --
+        ---------------------------------------------------------------------------
+        param.KERNEL_SIZE := KERNEL_SIZE;
+        param.STRIDE      := STRIDE;
+        param.C_UNROLL    := C_UNROLL;
+        param.D_UNROLL    := D_UNROLL;
+        param.X_UNROLL    := X_UNROLL;
+        param.Y_UNROLL    := Y_UNROLL;
+        param.I_STREAM    := I_STREAM;
+        param.I_SHAPE     := I_SHAPE;
+        ---------------------------------------------------------------------------
+        --
+        ---------------------------------------------------------------------------
+        pipeline_shape_c  := NEW_IMAGE_SHAPE_SIDE_CONSTANT(C_UNROLL*KERNEL_SIZE.X.SIZE*KERNEL_SIZE.Y.SIZE);
+        pipeline_shape_d  := NEW_IMAGE_SHAPE_SIDE_CONSTANT(D_UNROLL);
+        pipeline_shape_x  := NEW_IMAGE_SHAPE_SIDE_CONSTANT(X_UNROLL);
+        pipeline_shape_y  := NEW_IMAGE_SHAPE_SIDE_CONSTANT(Y_UNROLL);
+        pipeline_stride   := NEW_IMAGE_STREAM_STRIDE_PARAM(X_UNROLL, Y_UNROLL);
+        ---------------------------------------------------------------------------
+        --
+        ---------------------------------------------------------------------------
+        a_stream_x_size   := KERNEL_SIZE.X.SIZE + STRIDE.X*(X_UNROLL-1);
+        a_stream_y_size   := KERNEL_SIZE.Y.SIZE + STRIDE.Y*(Y_UNROLL-1);
+        param.A_STREAM    := NEW_IMAGE_STREAM_PARAM(
+                                 ELEM_BITS => I_STREAM.ELEM_BITS,
+                                 SHAPE     => NEW_IMAGE_SHAPE(
+                                                  ELEM_BITS => I_STREAM.ELEM_BITS,
+                                                  C         => NEW_IMAGE_SHAPE_SIDE_CONSTANT(C_UNROLL),
+                                                  D         => NEW_IMAGE_SHAPE_SIDE_CONSTANT(D_UNROLL),
+                                                  X         => NEW_IMAGE_SHAPE_SIDE_CONSTANT(KERNEL_SIZE.X.LO, KERNEL_SIZE.X.LO + a_stream_x_size - 1),
+                                                  Y         => NEW_IMAGE_SHAPE_SIDE_CONSTANT(KERNEL_SIZE.Y.LO, KERNEL_SIZE.Y.LO + a_stream_y_size - 1)
+                                              ),
+                                 STRIDE    => NEW_IMAGE_STREAM_STRIDE_PARAM(
+                                                  X         => STRIDE.X + X_UNROLL,
+                                                  Y         => STRIDE.Y + Y_UNROLL
+                                              )
+                             );
+        ---------------------------------------------------------------------------
+        --
+        ---------------------------------------------------------------------------
+        param.B_STREAM    := NEW_IMAGE_STREAM_PARAM(
+                                 ELEM_BITS => B_ELEM_BITS,
+                                 SHAPE     => NEW_IMAGE_SHAPE(
+                                                  ELEM_BITS => B_ELEM_BITS,
+                                                  C         => NEW_IMAGE_SHAPE_SIDE_CONSTANT(0),
+                                                  D         => NEW_IMAGE_SHAPE_SIDE_CONSTANT(D_UNROLL),
+                                                  X         => NEW_IMAGE_SHAPE_SIDE_CONSTANT(0),
+                                                  Y         => NEW_IMAGE_SHAPE_SIDE_CONSTANT(0)
+                                              ),
+                                 STRIDE    => NEW_IMAGE_STREAM_STRIDE_PARAM(
+                                                  X         => 1,
+                                                  Y         => 1
+                                              )
+                             );
+        ---------------------------------------------------------------------------
+        --
+        ---------------------------------------------------------------------------
+        param.W_STREAM    := NEW_IMAGE_STREAM_PARAM(
+                                 ELEM_BITS => W_ELEM_BITS,
+                                 SHAPE     => NEW_IMAGE_SHAPE(
+                                                  ELEM_BITS => W_ELEM_BITS,
+                                                  C         => NEW_IMAGE_SHAPE_SIDE_CONSTANT(C_UNROLL),
+                                                  D         => NEW_IMAGE_SHAPE_SIDE_CONSTANT(D_UNROLL),
+                                                  X         => NEW_IMAGE_SHAPE_SIDE_CONSTANT(KERNEL_SIZE.X.LO, KERNEL_SIZE.X.HI),
+                                                  Y         => NEW_IMAGE_SHAPE_SIDE_CONSTANT(KERNEL_SIZE.Y.LO, KERNEL_SIZE.Y.HI)
+                                              ),
+                                 STRIDE    => NEW_IMAGE_STREAM_STRIDE_PARAM(
+                                                  X         => 1,
+                                                  Y         => 1
+                                              )
+                             );
+        ---------------------------------------------------------------------------
+        --
+        ---------------------------------------------------------------------------
+        param.A_PIPELINE  := NEW_CONV_PIPELINE_PARAM(
+                                 ELEM_BITS => I_STREAM.ELEM_BITS,
+                                 SHAPE     => NEW_IMAGE_SHAPE(
+                                                  ELEM_BITS => I_STREAM.ELEM_BITS,
+                                                  C         => pipeline_shape_c,
+                                                  D         => pipeline_shape_d,
+                                                  X         => pipeline_shape_x,
+                                                  Y         => pipeline_shape_y
+                                              ),
+                                 STRIDE    => pipeline_stride
+                             );
+        ---------------------------------------------------------------------------
+        --
+        ---------------------------------------------------------------------------
+        param.W_PIPELINE  := NEW_CONV_PIPELINE_PARAM(
+                                 ELEM_BITS => W_ELEM_BITS,
+                                 SHAPE     => NEW_IMAGE_SHAPE(
+                                                  ELEM_BITS => W_ELEM_BITS,
+                                                  C         => pipeline_shape_c,
+                                                  D         => pipeline_shape_d,
+                                                  X         => pipeline_shape_x,
+                                                  Y         => pipeline_shape_y
+                                              ),
+                                 STRIDE    => pipeline_stride
+                             );
+        ---------------------------------------------------------------------------
+        --
+        ---------------------------------------------------------------------------
+        param.M_PIPELINE  := NEW_CONV_PIPELINE_PARAM(
+                                 ELEM_BITS => M_ELEM_BITS,
+                                 SHAPE     => NEW_IMAGE_SHAPE(
+                                                  ELEM_BITS => M_ELEM_BITS    ,
+                                                  C         => pipeline_shape_c,
+                                                  D         => pipeline_shape_d,
+                                                  X         => pipeline_shape_x,
+                                                  Y         => pipeline_shape_y
+                                              ),
+                                 STRIDE    => pipeline_stride
+                             );
+        ---------------------------------------------------------------------------
+        --
+        ---------------------------------------------------------------------------
+        param.O_PIPELINE  := NEW_CONV_PIPELINE_PARAM(
+                                 ELEM_BITS => O_ELEM_BITS,
+                                 SHAPE     => NEW_IMAGE_SHAPE(
+                                                  ELEM_BITS => O_ELEM_BITS     ,
+                                                  C         => NEW_IMAGE_SHAPE_SIDE_CONSTANT(1),
+                                                  D         => pipeline_shape_d,
+                                                  X         => pipeline_shape_x,
+                                                  Y         => pipeline_shape_y
+                                              ),
+                                 STRIDE    => pipeline_stride
+                             );
+            
+        ---------------------------------------------------------------------------
+        --
+        ---------------------------------------------------------------------------
+        param.O_STREAM    := NEW_IMAGE_STREAM_PARAM(
+                                 ELEM_BITS => O_ELEM_BITS,
+                                 SHAPE     => NEW_IMAGE_SHAPE(
+                                                  ELEM_BITS => O_ELEM_BITS,
+                                                  C         => pipeline_shape_d,
+                                                  D         => NEW_IMAGE_SHAPE_SIDE_CONSTANT(0),
+                                                  X         => pipeline_shape_x,
+                                                  Y         => pipeline_shape_y
+                                             ),
+                                 STRIDE    => pipeline_stride
+                             );
+        ---------------------------------------------------------------------------
+        -- 
+        ---------------------------------------------------------------------------
+        a_shape_c := UPDATE_IMAGE_SHAPE_SIDE(I_SHAPE.C, I_STREAM.BORDER_TYPE, 0               , 0               );
+        a_shape_d := UPDATE_IMAGE_SHAPE_SIDE(O_SHAPE_C, I_STREAM.BORDER_TYPE, 0               , 0               );
+        a_shape_x := UPDATE_IMAGE_SHAPE_SIDE(I_SHAPE.X, I_STREAM.BORDER_TYPE, KERNEL_SIZE.X.LO, KERNEL_SIZE.X.HI);
+        a_shape_y := NEW_IMAGE_SHAPE_SIDE_AUTO(I_SHAPE.Y.MAX_SIZE, TRUE);
+        param.A_SHAPE := NEW_IMAGE_SHAPE(
+                             ELEM_BITS => I_STREAM.ELEM_BITS,
+                             C         => a_shape_c,
+                             D         => a_shape_d,
+                             X         => a_shape_x,
+                             Y         => a_shape_y
+                         );
+        ---------------------------------------------------------------------------
+        --
+        ---------------------------------------------------------------------------
+        o_shape_d := NEW_IMAGE_SHAPE_SIDE_CONSTANT(0);
+        o_shape_x := UPDATE_IMAGE_SHAPE_SIDE(I_SHAPE.X, I_STREAM.BORDER_TYPE, KERNEL_SIZE.X.LO, KERNEL_SIZE.X.HI);
+        o_shape_y := UPDATE_IMAGE_SHAPE_SIDE(I_SHAPE.Y, I_STREAM.BORDER_TYPE, KERNEL_SIZE.Y.LO, KERNEL_SIZE.Y.HI);
+        param.O_SHAPE := NEW_IMAGE_SHAPE(
+                             ELEM_BITS => O_ELEM_BITS,
+                             C         => O_SHAPE_C,
+                             D         => o_shape_d,
+                             X         => o_shape_x,
+                             Y         => o_shape_y
+                         );
         return param;
     end function;
+
     -------------------------------------------------------------------------------
-    --! @brief Convolution D Channel Vector の各種パラメータをを設定する関数
+    --! @brief イメージ入力 Stream を Convolution Pipeline に変換する関数
     -------------------------------------------------------------------------------
-    function  NEW_CONV_D_VECTOR_PARAM(
-                  ELEM_BITS         :  integer;
-                  INFO_BITS         :  integer;
-                  D                 :  CONV_VECTOR_RANGE_TYPE)
-                  return               CONV_D_VECTOR_PARAM_TYPE
+    function  CONV_PIPELINE_FROM_IMAGE_STREAM(
+                  PIPELINE_PARAM    :  CONV_PIPELINE_PARAM_TYPE;
+                  STREAM_PARAM      :  IMAGE_STREAM_PARAM_TYPE;
+                  KERNEL_SIZE       :  CONV_KERNEL_SIZE_TYPE;
+                  STRIDE            :  IMAGE_STREAM_STRIDE_PARAM_TYPE;
+                  STREAM_DATA       :  std_logic_vector)
+                  return               std_logic_vector
     is
+        alias     i_data            :  std_logic_vector(STREAM_PARAM  .DATA.SIZE-1 downto 0) is STREAM_DATA;
+        variable  o_data            :  std_logic_vector(PIPELINE_PARAM.DATA.SIZE-1 downto 0);
+        variable  element           :  std_logic_vector(STREAM_PARAM  .ELEM_BITS-1 downto 0);
+        variable  i_c_atrb          :  IMAGE_STREAM_ATRB_TYPE;
+        variable  i_d_atrb          :  IMAGE_STREAM_ATRB_TYPE;
+        variable  i_x_atrb          :  IMAGE_STREAM_ATRB_TYPE;
+        variable  i_y_atrb          :  IMAGE_STREAM_ATRB_TYPE;
+        variable  o_c_valid         :  std_logic_vector(PIPELINE_PARAM.DATA.ATRB_FIELD.C.VALID.SIZE-1 downto 0);
+        variable  o_d_valid         :  std_logic_vector(PIPELINE_PARAM.DATA.ATRB_FIELD.D.VALID.SIZE-1 downto 0);
+        variable  o_x_valid         :  std_logic_vector(PIPELINE_PARAM.DATA.ATRB_FIELD.X.VALID.SIZE-1 downto 0);
+        variable  o_y_valid         :  std_logic_vector(PIPELINE_PARAM.DATA.ATRB_FIELD.Y.VALID.SIZE-1 downto 0);
     begin
-        return NEW_CONV_D_VECTOR_PARAM(
-                  ELEM_BITS         => ELEM_BITS,
-                  INFO_BITS         => INFO_BITS,
-                  SHAPE             => NEW_CONV_SHAPE_PARAM(
-                                           C => NEW_CONV_VECTOR_RANGE(1),
-                                           D => D                       ,
-                                           X => NEW_CONV_VECTOR_RANGE(1),
-                                           Y => NEW_CONV_VECTOR_RANGE(1)
-                                       )
-               );
-    end function;
-    -------------------------------------------------------------------------------
-    --! @brief Convolution D Channel Vector の各種パラメータをを設定する関数
-    -------------------------------------------------------------------------------
-    function  NEW_CONV_D_VECTOR_PARAM(
-                  ELEM_BITS         :  integer;
-                  INFO_BITS         :  integer;
-                  D                 :  integer)
-                  return               CONV_D_VECTOR_PARAM_TYPE
-    is
-    begin
-        return NEW_CONV_D_VECTOR_PARAM(
-                  ELEM_BITS         => ELEM_BITS,
-                  INFO_BITS         => INFO_BITS,
-                  SHAPE             => NEW_CONV_SHAPE_PARAM(
-                                           C => NEW_CONV_VECTOR_RANGE(1),
-                                           D => NEW_CONV_VECTOR_RANGE(D),
-                                           X => NEW_CONV_VECTOR_RANGE(1),
-                                           Y => NEW_CONV_VECTOR_RANGE(1)
-                                       )
-               );
+        o_data := (others => '0');
+        ---------------------------------------------------------------------------
+        --
+        ---------------------------------------------------------------------------
+        o_c_valid := (others => '0');
+        for o_y_pos in 0 to PIPELINE_PARAM.SHAPE.Y.SIZE-1 loop
+        for o_x_pos in 0 to PIPELINE_PARAM.SHAPE.X.SIZE-1 loop
+            for i_y_pos in 0 to STREAM_PARAM.SHAPE.Y.SIZE-1 loop
+            for i_x_pos in 0 to STREAM_PARAM.SHAPE.X.SIZE-1 loop
+            for i_c_pos in 0 to STREAM_PARAM.SHAPE.C.SIZE-1 loop
+                element := GET_ELEMENT_FROM_IMAGE_STREAM_DATA(
+                               PARAM   => STREAM_PARAM,
+                               C       => i_c_pos + STREAM_PARAM.SHAPE.C.LO,
+                               D       => 0,
+                               X       => i_x_pos + STREAM_PARAM.SHAPE.X.LO + (o_x_pos * STRIDE.X),
+                               Y       => i_y_pos + STREAM_PARAM.SHAPE.Y.LO + (o_y_pos * STRIDE.Y),
+                               DATA    => i_data
+                           );
+                i_c_atrb := GET_ATRB_C_FROM_IMAGE_STREAM_DATA(
+                               PARAM   => STREAM_PARAM,
+                               C       => i_c_pos + STREAM_PARAM.SHAPE.C.LO,
+                               DATA    => i_data
+                           );
+                i_x_atrb := GET_ATRB_X_FROM_IMAGE_STREAM_DATA(
+                               PARAM   => STREAM_PARAM,
+                               X       => i_x_pos + STREAM_PARAM.SHAPE.X.LO + (o_x_pos * STRIDE.X),
+                               DATA    => i_data
+                           );
+                i_y_atrb := GET_ATRB_Y_FROM_IMAGE_STREAM_DATA(
+                               PARAM   => STREAM_PARAM,
+                               Y       => i_y_pos + STREAM_PARAM.SHAPE.Y.LO + (o_y_pos * STRIDE.Y),
+                               DATA    => i_data
+                            );
+                for o_d_pos in 0 to PIPELINE_PARAM.SHAPE.D.SIZE-1 loop
+                    SET_ELEMENT_TO_DATA(
+                               PARAM   => PIPELINE_PARAM,
+                               C       => i_c_pos + PIPELINE_PARAM.SHAPE.C.LO
+                                        +(i_x_pos * STREAM_PARAM.SHAPE.C.SIZE)
+                                        +(i_y_pos * STREAM_PARAM.SHAPE.C.SIZE * KERNEL_SIZE.X.SIZE),
+                               D       => o_d_pos + PIPELINE_PARAM.SHAPE.D.LO,
+                               X       => o_x_pos + PIPELINE_PARAM.SHAPE.X.LO,
+                               Y       => o_y_pos + PIPELINE_PARAM.SHAPE.Y.LO,
+                               ELEMENT => element,
+                               DATA    => o_data
+                    );
+                end loop;
+                if (i_c_atrb.VALID = TRUE and i_x_atrb.VALID = TRUE and i_y_atrb.VALID = TRUE) then
+                    o_c_valid((i_c_pos                                                 ) +
+                              (i_x_pos * STREAM_PARAM.SHAPE.C.SIZE                     ) +
+                              (i_y_pos * STREAM_PARAM.SHAPE.C.SIZE * KERNEL_SIZE.X.SIZE)) := '1';
+                end if;
+            end loop;
+            end loop;
+            end loop;
+        end loop;
+        end loop;
+        o_data(PIPELINE_PARAM.DATA.ATRB_FIELD.C.VALID.HI downto PIPELINE_PARAM.DATA.ATRB_FIELD.C.VALID.LO) := o_c_valid;
+        if (IMAGE_STREAM_DATA_IS_START_C(STREAM_PARAM, i_data) = TRUE) then
+            o_data(PIPELINE_PARAM.DATA.ATRB_FIELD.C.START_POS) := '1';
+        else
+            o_data(PIPELINE_PARAM.DATA.ATRB_FIELD.C.START_POS) := '0';
+        end if;
+        if (IMAGE_STREAM_DATA_IS_LAST_C( STREAM_PARAM, i_data) = TRUE) then
+            o_data(PIPELINE_PARAM.DATA.ATRB_FIELD.C.LAST_POS ) := '1';
+        else
+            o_data(PIPELINE_PARAM.DATA.ATRB_FIELD.C.LAST_POS ) := '0';
+        end if;
+        ---------------------------------------------------------------------------
+        --
+        ---------------------------------------------------------------------------
+        o_d_valid := (others => '0');
+        for o_d_pos in 0 to PIPELINE_PARAM.SHAPE.D.SIZE-1 loop
+                i_d_atrb := GET_ATRB_D_FROM_IMAGE_STREAM_DATA(
+                                PARAM => STREAM_PARAM,
+                                D     => o_d_pos + STREAM_PARAM.SHAPE.D.LO,
+                                DATA  => i_data
+                            );
+                if (i_d_atrb.VALID) then
+                    o_d_valid(o_d_pos) := '1';
+                end if;
+        end loop;
+        o_data(PIPELINE_PARAM.DATA.ATRB_FIELD.D.VALID.HI downto PIPELINE_PARAM.DATA.ATRB_FIELD.D.VALID.LO) := o_d_valid;
+        if (IMAGE_STREAM_DATA_IS_START_D(STREAM_PARAM, i_data) = TRUE) then
+            o_data(PIPELINE_PARAM.DATA.ATRB_FIELD.D.START_POS) := '1';
+        else
+            o_data(PIPELINE_PARAM.DATA.ATRB_FIELD.D.START_POS) := '0';
+        end if;
+        if (IMAGE_STREAM_DATA_IS_LAST_D( STREAM_PARAM, i_data) = TRUE) then
+            o_data(PIPELINE_PARAM.DATA.ATRB_FIELD.D.LAST_POS ) := '1';
+        else
+            o_data(PIPELINE_PARAM.DATA.ATRB_FIELD.D.LAST_POS ) := '0';
+        end if;
+        ---------------------------------------------------------------------------
+        --
+        ---------------------------------------------------------------------------
+        o_x_valid := (others => '0');
+        for o_x_pos in 0 to PIPELINE_PARAM.SHAPE.X.SIZE-1 loop
+            for k_x_pos in 0 to KERNEL_SIZE.X.SIZE-1 loop
+                i_x_atrb := GET_ATRB_X_FROM_IMAGE_STREAM_DATA(
+                                PARAM => STREAM_PARAM,
+                                X     => k_x_pos + STREAM_PARAM.SHAPE.X.LO + (o_x_pos * STRIDE.X),
+                                DATA  => i_data
+                            );
+                if (i_x_atrb.VALID) then
+                    o_x_valid(o_x_pos) := '1';
+                end if;
+            end loop;
+        end loop;
+        o_data(PIPELINE_PARAM.DATA.ATRB_FIELD.X.VALID.HI downto PIPELINE_PARAM.DATA.ATRB_FIELD.X.VALID.LO) := o_x_valid;
+        if (IMAGE_STREAM_DATA_IS_START_X(STREAM_PARAM, i_data) = TRUE) then
+            o_data(PIPELINE_PARAM.DATA.ATRB_FIELD.X.START_POS) := '1';
+        else
+            o_data(PIPELINE_PARAM.DATA.ATRB_FIELD.X.START_POS) := '0';
+        end if;
+        if (IMAGE_STREAM_DATA_IS_LAST_X( STREAM_PARAM, i_data) = TRUE) then
+            o_data(PIPELINE_PARAM.DATA.ATRB_FIELD.X.LAST_POS ) := '1';
+        else
+            o_data(PIPELINE_PARAM.DATA.ATRB_FIELD.X.LAST_POS ) := '0';
+        end if;
+        ---------------------------------------------------------------------------
+        --
+        ---------------------------------------------------------------------------
+        o_y_valid := (others => '0');
+        for o_y_pos in 0 to PIPELINE_PARAM.SHAPE.Y.SIZE-1 loop
+            for k_y_pos in 0 to KERNEL_SIZE.Y.SIZE-1 loop
+                i_y_atrb := GET_ATRB_Y_FROM_IMAGE_STREAM_DATA(
+                                PARAM => STREAM_PARAM,
+                                Y     => k_y_pos + STREAM_PARAM.SHAPE.Y.LO + (o_y_pos * STRIDE.Y),
+                                DATA  => i_data
+                            );
+                if (i_y_atrb.VALID) then
+                    o_y_valid(o_y_pos) := '1';
+                end if;
+            end loop;
+        end loop;
+        o_data(PIPELINE_PARAM.DATA.ATRB_FIELD.Y.VALID.HI downto PIPELINE_PARAM.DATA.ATRB_FIELD.Y.VALID.LO) := o_y_valid;
+        if (IMAGE_STREAM_DATA_IS_START_Y(STREAM_PARAM, i_data) = TRUE) then
+            o_data(PIPELINE_PARAM.DATA.ATRB_FIELD.Y.START_POS) := '1';
+        else
+            o_data(PIPELINE_PARAM.DATA.ATRB_FIELD.Y.START_POS) := '0';
+        end if;
+        if (IMAGE_STREAM_DATA_IS_LAST_Y( STREAM_PARAM, i_data) = TRUE) then
+            o_data(PIPELINE_PARAM.DATA.ATRB_FIELD.Y.LAST_POS ) := '1';
+        else
+            o_data(PIPELINE_PARAM.DATA.ATRB_FIELD.Y.LAST_POS ) := '0';
+        end if;
+        ---------------------------------------------------------------------------
+        --
+        ---------------------------------------------------------------------------
+        return o_data;
     end function;
 
     -------------------------------------------------------------------------------
-    --! @brief Convolution D Channel Vector の Data から要素を取り出す関数
+    --! @brief ウェイト入力 Stream を Convolution Pipeline に変換する関数
     -------------------------------------------------------------------------------
-    function  GET_ELEMENT_FROM_DATA(
-                  PARAM             :  CONV_D_VECTOR_PARAM_TYPE;
-                  D                 :  integer;
-                  DATA              :  std_logic_vector)
+    function  CONV_PIPELINE_FROM_WEIGHT_STREAM(
+                  PIPELINE_PARAM    :  CONV_PIPELINE_PARAM_TYPE;
+                  STREAM_PARAM      :  IMAGE_STREAM_PARAM_TYPE;
+                  KERNEL_SIZE       :  CONV_KERNEL_SIZE_TYPE;
+                  STREAM_DATA       :  std_logic_vector)
                   return               std_logic_vector
     is
-        alias     input_data        :  std_logic_vector(PARAM.DATA.SIZE           -1 downto 0) is DATA;
-        variable  elem_data         :  std_logic_vector(PARAM.DATA.ELEM_FIELD.SIZE-1 downto 0);
-        variable  element           :  std_logic_vector(PARAM.ELEM_BITS           -1 downto 0);
+        alias     i_data            :  std_logic_vector(STREAM_PARAM  .DATA.SIZE-1 downto 0) is STREAM_DATA;
+        variable  o_data            :  std_logic_vector(PIPELINE_PARAM.DATA.SIZE-1 downto 0);
+        variable  element           :  std_logic_vector(STREAM_PARAM  .ELEM_BITS-1 downto 0);
+        variable  i_c_atrb          :  IMAGE_STREAM_ATRB_TYPE;
+        variable  i_d_atrb          :  IMAGE_STREAM_ATRB_TYPE;
+        variable  i_x_atrb          :  IMAGE_STREAM_ATRB_TYPE;
+        variable  i_y_atrb          :  IMAGE_STREAM_ATRB_TYPE;
+        variable  o_c_valid         :  std_logic_vector(PIPELINE_PARAM.DATA.ATRB_FIELD.C.VALID.SIZE-1 downto 0);
+        variable  o_d_valid         :  std_logic_vector(PIPELINE_PARAM.DATA.ATRB_FIELD.D.VALID.SIZE-1 downto 0);
+        variable  o_x_valid         :  std_logic_vector(PIPELINE_PARAM.DATA.ATRB_FIELD.X.VALID.SIZE-1 downto 0);
+        variable  o_y_valid         :  std_logic_vector(PIPELINE_PARAM.DATA.ATRB_FIELD.Y.VALID.SIZE-1 downto 0);
     begin
-        elem_data := input_data(PARAM.DATA.ELEM_FIELD.HI downto PARAM.DATA.ELEM_FIELD.LO);
-        element   := elem_data(((D-PARAM.SHAPE.D.LO) + 1)*PARAM.ELEM_BITS-1 downto
-                               ((D-PARAM.SHAPE.D.LO)    )*PARAM.ELEM_BITS);
-        return element;
+        o_data := (others => '0');
+        ---------------------------------------------------------------------------
+        --
+        ---------------------------------------------------------------------------
+        o_c_valid := (others => '0');
+        for i_y_pos in 0 to STREAM_PARAM.SHAPE.Y.SIZE-1 loop
+        for i_x_pos in 0 to STREAM_PARAM.SHAPE.X.SIZE-1 loop
+        for i_c_pos in 0 to STREAM_PARAM.SHAPE.C.SIZE-1 loop
+            for i_d_pos in 0 to STREAM_PARAM.SHAPE.D.SIZE-1 loop
+                element := GET_ELEMENT_FROM_IMAGE_STREAM_DATA(
+                               PARAM   => STREAM_PARAM,
+                               C       => i_c_pos + STREAM_PARAM.SHAPE.C.LO,
+                               D       => i_d_pos + STREAM_PARAM.SHAPE.D.LO,
+                               X       => i_x_pos + STREAM_PARAM.SHAPE.X.LO,
+                               Y       => i_y_pos + STREAM_PARAM.SHAPE.Y.LO,
+                               DATA    => i_data
+                            );
+                for o_y_pos in 0 to PIPELINE_PARAM.SHAPE.Y.SIZE-1 loop
+                for o_x_pos in 0 to PIPELINE_PARAM.SHAPE.X.SIZE-1 loop
+                    SET_ELEMENT_TO_DATA(
+                               PARAM   => PIPELINE_PARAM,
+                               C       => i_c_pos + PIPELINE_PARAM.SHAPE.C.LO
+                                        +(i_x_pos * STREAM_PARAM.SHAPE.C.SIZE)
+                                        +(i_y_pos * STREAM_PARAM.SHAPE.C.SIZE * KERNEL_SIZE.X.SIZE),
+                               D       => i_d_pos + PIPELINE_PARAM.SHAPE.D.LO,
+                               X       => o_x_pos + PIPELINE_PARAM.SHAPE.X.LO,
+                               Y       => o_y_pos + PIPELINE_PARAM.SHAPE.Y.LO,
+                               ELEMENT => element,
+                               DATA    => o_data
+                    );
+                end loop;
+                end loop;
+            end loop;
+            i_c_atrb := GET_ATRB_C_FROM_IMAGE_STREAM_DATA(
+                           PARAM   => STREAM_PARAM,
+                           C       => i_c_pos + STREAM_PARAM.SHAPE.C.LO,
+                           DATA    => i_data
+                        );
+            i_x_atrb := GET_ATRB_X_FROM_IMAGE_STREAM_DATA(
+                           PARAM   => STREAM_PARAM,
+                           X       => i_x_pos + STREAM_PARAM.SHAPE.X.LO,
+                           DATA    => i_data
+                        );
+            i_y_atrb := GET_ATRB_Y_FROM_IMAGE_STREAM_DATA(
+                           PARAM   => STREAM_PARAM,
+                           Y       => i_y_pos + STREAM_PARAM.SHAPE.Y.LO,
+                           DATA    => i_data
+                        );
+            if (i_c_atrb.VALID = TRUE and i_x_atrb.VALID = TRUE and i_y_atrb.VALID = TRUE) then
+                o_c_valid((i_c_pos                                                 ) +
+                          (i_x_pos * STREAM_PARAM.SHAPE.C.SIZE                     ) +
+                          (i_y_pos * STREAM_PARAM.SHAPE.C.SIZE * KERNEL_SIZE.X.SIZE)) := '1';
+            end if;
+        end loop;
+        end loop;
+        end loop;
+        o_data(PIPELINE_PARAM.DATA.ATRB_FIELD.C.VALID.HI downto PIPELINE_PARAM.DATA.ATRB_FIELD.C.VALID.LO) := o_c_valid;
+        if (IMAGE_STREAM_DATA_IS_START_C(STREAM_PARAM, i_data) = TRUE) then
+            o_data(PIPELINE_PARAM.DATA.ATRB_FIELD.C.START_POS) := '1';
+        else
+            o_data(PIPELINE_PARAM.DATA.ATRB_FIELD.C.START_POS) := '0';
+        end if;
+        if (IMAGE_STREAM_DATA_IS_LAST_C( STREAM_PARAM, i_data) = TRUE) then
+            o_data(PIPELINE_PARAM.DATA.ATRB_FIELD.C.LAST_POS ) := '1';
+        else
+            o_data(PIPELINE_PARAM.DATA.ATRB_FIELD.C.LAST_POS ) := '0';
+        end if;
+        ---------------------------------------------------------------------------
+        --
+        ---------------------------------------------------------------------------
+        o_d_valid := (others => '0');
+        for o_d_pos in 0 to PIPELINE_PARAM.SHAPE.D.SIZE-1 loop
+                i_d_atrb := GET_ATRB_D_FROM_IMAGE_STREAM_DATA(
+                                PARAM => STREAM_PARAM,
+                                D     => o_d_pos + STREAM_PARAM.SHAPE.D.LO,
+                                DATA  => i_data
+                            );
+                if (i_d_atrb.VALID) then
+                    o_d_valid(o_d_pos) := '1';
+                end if;
+        end loop;
+        o_data(PIPELINE_PARAM.DATA.ATRB_FIELD.D.VALID.HI downto PIPELINE_PARAM.DATA.ATRB_FIELD.D.VALID.LO) := o_d_valid;
+        if (IMAGE_STREAM_DATA_IS_START_D(STREAM_PARAM, i_data) = TRUE) then
+            o_data(PIPELINE_PARAM.DATA.ATRB_FIELD.D.START_POS) := '1';
+        else
+            o_data(PIPELINE_PARAM.DATA.ATRB_FIELD.D.START_POS) := '0';
+        end if;
+        if (IMAGE_STREAM_DATA_IS_LAST_D( STREAM_PARAM, i_data) = TRUE) then
+            o_data(PIPELINE_PARAM.DATA.ATRB_FIELD.D.LAST_POS ) := '1';
+        else
+            o_data(PIPELINE_PARAM.DATA.ATRB_FIELD.D.LAST_POS ) := '0';
+        end if;
+        ---------------------------------------------------------------------------
+        --
+        ---------------------------------------------------------------------------
+        o_x_valid := (others => '0');
+        for o_x_pos in 0 to PIPELINE_PARAM.SHAPE.X.SIZE-1 loop
+            for k_x_pos in 0 to KERNEL_SIZE.X.SIZE-1 loop
+                i_x_atrb := GET_ATRB_X_FROM_IMAGE_STREAM_DATA(
+                                PARAM => STREAM_PARAM,
+                                X     => k_x_pos + STREAM_PARAM.SHAPE.X.LO,
+                                DATA  => i_data
+                            );
+                if (i_x_atrb.VALID) then
+                    o_x_valid(o_x_pos) := '1';
+                end if;
+            end loop;
+        end loop;
+        o_data(PIPELINE_PARAM.DATA.ATRB_FIELD.X.VALID.HI downto PIPELINE_PARAM.DATA.ATRB_FIELD.X.VALID.LO) := o_x_valid;
+        if (IMAGE_STREAM_DATA_IS_START_X(STREAM_PARAM, i_data) = TRUE) then
+            o_data(PIPELINE_PARAM.DATA.ATRB_FIELD.X.START_POS) := '1';
+        else
+            o_data(PIPELINE_PARAM.DATA.ATRB_FIELD.X.START_POS) := '0';
+        end if;
+        if (IMAGE_STREAM_DATA_IS_LAST_X( STREAM_PARAM, i_data) = TRUE) then
+            o_data(PIPELINE_PARAM.DATA.ATRB_FIELD.X.LAST_POS ) := '1';
+        else
+            o_data(PIPELINE_PARAM.DATA.ATRB_FIELD.X.LAST_POS ) := '0';
+        end if;
+        ---------------------------------------------------------------------------
+        --
+        ---------------------------------------------------------------------------
+        o_y_valid := (others => '0');
+        for o_y_pos in 0 to PIPELINE_PARAM.SHAPE.Y.SIZE-1 loop
+            for k_y_pos in 0 to KERNEL_SIZE.Y.SIZE-1 loop
+                i_y_atrb := GET_ATRB_Y_FROM_IMAGE_STREAM_DATA(
+                                PARAM => STREAM_PARAM,
+                                Y     => k_y_pos + STREAM_PARAM.SHAPE.Y.LO,
+                                DATA  => i_data
+                            );
+                if (i_y_atrb.VALID) then
+                    o_y_valid(o_y_pos) := '1';
+                end if;
+            end loop;
+        end loop;
+        o_data(PIPELINE_PARAM.DATA.ATRB_FIELD.Y.VALID.HI downto PIPELINE_PARAM.DATA.ATRB_FIELD.Y.VALID.LO) := o_y_valid;
+        if (IMAGE_STREAM_DATA_IS_START_Y(STREAM_PARAM, i_data) = TRUE) then
+            o_data(PIPELINE_PARAM.DATA.ATRB_FIELD.Y.START_POS) := '1';
+        else
+            o_data(PIPELINE_PARAM.DATA.ATRB_FIELD.Y.START_POS) := '0';
+        end if;
+        if (IMAGE_STREAM_DATA_IS_LAST_Y( STREAM_PARAM, i_data) = TRUE) then
+            o_data(PIPELINE_PARAM.DATA.ATRB_FIELD.Y.LAST_POS ) := '1';
+        else
+            o_data(PIPELINE_PARAM.DATA.ATRB_FIELD.Y.LAST_POS ) := '0';
+        end if;
+        ---------------------------------------------------------------------------
+        --
+        ---------------------------------------------------------------------------
+        return o_data;
     end function;
-    -------------------------------------------------------------------------------
-    --! @brief Convolution D Channel Vector の Data に要素を追加するプロシージャ
-    -------------------------------------------------------------------------------
-    procedure SET_ELEMENT_TO_DATA(
-                  PARAM             :  in    CONV_D_VECTOR_PARAM_TYPE;
-                  D                 :  in    integer;
-                  ELEMENT           :  in    std_logic_vector;
-        variable  DATA              :  inout std_logic_vector)
-    is
-    begin 
-        DATA(((D-PARAM.SHAPE.D.LO) + 1)*PARAM.ELEM_BITS-1 downto
-             ((D-PARAM.SHAPE.D.LO)    )*PARAM.ELEM_BITS) := ELEMENT;
-    end procedure;
 end package body;

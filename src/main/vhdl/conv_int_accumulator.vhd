@@ -2,7 +2,7 @@
 --!     @file    conv_int_accumulator.vhd
 --!     @brief   Convolution Integer Accumulator Module
 --!     @version 0.1.0
---!     @date    2019/1/18
+--!     @date    2019/2/4
 --!     @author  Ichiro Kawazome <ichiro_k@ca2.so-net.ne.jp>
 -----------------------------------------------------------------------------------
 --
@@ -228,9 +228,9 @@ begin
         end loop;
         end loop;
         end loop;
-        i_c_valid <= I_DATA(I_PARAM.DATA.ATRB_C_FIELD.VALID.HI downto I_PARAM.DATA.ATRB_C_FIELD.VALID.LO);
-        i_c_start <= I_DATA(I_PARAM.DATA.ATRB_C_FIELD.START_POS);
-        i_c_last  <= I_DATA(I_PARAM.DATA.ATRB_C_FIELD.LAST_POS);
+        i_c_valid <= I_DATA(I_PARAM.DATA.ATRB_FIELD.C.VALID.HI downto I_PARAM.DATA.ATRB_FIELD.C.VALID.LO);
+        i_c_start <= I_DATA(I_PARAM.DATA.ATRB_FIELD.C.START_POS);
+        i_c_last  <= I_DATA(I_PARAM.DATA.ATRB_FIELD.C.LAST_POS);
     end process;
     -------------------------------------------------------------------------------
     -- b_element : バイアスデータを要素ごとの配列に変換
@@ -353,12 +353,12 @@ begin
         end loop;        
         end loop;        
         end loop;
-        data(O_PARAM.DATA.ATRB_C_FIELD.VALID.HI downto O_PARAM.DATA.ATRB_C_FIELD.VALID.LO) := a_c_valid;
-        data(O_PARAM.DATA.ATRB_C_FIELD.START_POS)                                          := '1';
-        data(O_PARAM.DATA.ATRB_C_FIELD.LAST_POS )                                          := '1';
-        data(O_PARAM.DATA.ATRB_D_FIELD.HI downto O_PARAM.DATA.ATRB_D_FIELD.LO) := I_DATA(I_PARAM.DATA.ATRB_D_FIELD.HI downto I_PARAM.DATA.ATRB_D_FIELD.LO);
-        data(O_PARAM.DATA.ATRB_X_FIELD.HI downto O_PARAM.DATA.ATRB_X_FIELD.LO) := I_DATA(I_PARAM.DATA.ATRB_X_FIELD.HI downto I_PARAM.DATA.ATRB_X_FIELD.LO);
-        data(O_PARAM.DATA.ATRB_Y_FIELD.HI downto O_PARAM.DATA.ATRB_Y_FIELD.LO) := I_DATA(I_PARAM.DATA.ATRB_Y_FIELD.HI downto I_PARAM.DATA.ATRB_Y_FIELD.LO);
+        data(O_PARAM.DATA.ATRB_FIELD.C.VALID.HI downto O_PARAM.DATA.ATRB_FIELD.C.VALID.LO) := a_c_valid;
+        data(O_PARAM.DATA.ATRB_FIELD.C.START_POS)                                          := '1';
+        data(O_PARAM.DATA.ATRB_FIELD.C.LAST_POS )                                          := '1';
+        data(O_PARAM.DATA.ATRB_FIELD.D.HI downto O_PARAM.DATA.ATRB_FIELD.D.LO) := I_DATA(I_PARAM.DATA.ATRB_FIELD.D.HI downto I_PARAM.DATA.ATRB_FIELD.D.LO);
+        data(O_PARAM.DATA.ATRB_FIELD.X.HI downto O_PARAM.DATA.ATRB_FIELD.X.LO) := I_DATA(I_PARAM.DATA.ATRB_FIELD.X.HI downto I_PARAM.DATA.ATRB_FIELD.X.LO);
+        data(O_PARAM.DATA.ATRB_FIELD.Y.HI downto O_PARAM.DATA.ATRB_FIELD.Y.LO) := I_DATA(I_PARAM.DATA.ATRB_FIELD.Y.HI downto I_PARAM.DATA.ATRB_FIELD.Y.LO);
         if (O_PARAM.INFO_BITS > 0) then
             data(O_PARAM.DATA.INFO_FIELD.HI downto O_PARAM.DATA.INFO_FIELD.LO) := I_DATA(I_PARAM.DATA.INFO_FIELD.HI   downto I_PARAM.DATA.INFO_FIELD.LO  );
         end if;
