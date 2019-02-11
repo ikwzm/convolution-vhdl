@@ -3,7 +3,7 @@ ENTITY_FILES = conv_int_adder.vhd       \
                conv_int_adder_tree.vhd  \
                conv_int_accumulator.vhd \
                conv_int_multiplier.vhd  \
-               conv_input_buffer.vhd    \
+               conv_int_core.vhd        \
                ${ENDLIST}
 
 conv_components.vhd : ${ENTITY_FILES}

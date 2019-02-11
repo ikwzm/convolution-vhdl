@@ -2,7 +2,7 @@
 --!     @file    conv_components.vhd                                             --
 --!     @brief   CONVOLUTION COMPONENT LIBRARY DESCRIPTION                       --
 --!     @version 0.1.0                                                           --
---!     @date    2019/02/06                                                      --
+--!     @date    2019/02/11                                                      --
 --!     @author  Ichiro Kawazome <ichiro_k@ca2.so-net.ne.jp>                     --
 -----------------------------------------------------------------------------------
 -----------------------------------------------------------------------------------
@@ -411,26 +411,27 @@ component CONV_INT_MULTIPLIER
     );
 end component;
 -----------------------------------------------------------------------------------
---! @brief CONV_INTPUT_BUFFER                                                    --
+--! @brief CONV_INT_CORE                                                         --
 -----------------------------------------------------------------------------------
-component CONV_INTPUT_BUFFER
+component CONV_INT_CORE
     generic (
-        I_PARAM         : --! @brief INPUT  IMAGE STREAM PARAMETER :
-                          --! 入力側のイメージストリームのパラメータを指定する.
-                          --! I_PARAM.ELEM_SIZE    = O_PARAM.ELEM_SIZE    でなければならない.
-                          IMAGE_STREAM_PARAM_TYPE  := NEW_IMAGE_STREAM_PARAM(8,1,1,1);
-        O_PARAM         : --! @brief OUTPUT PIPELINE DATA PARAMETER :
-                          --! パイプラインデータ出力ポートのパラメータを指定する.
-                          CONV_PIPELINE_PARAM_TYPE := NEW_CONV_PIPELINE_PARAM(8,0,1,1,1,1);
-        ELEMENT_SIZE    : --! @brief ELEMENT SIZE :
-                          --! 列方向の要素数を指定する.
-                          integer := 256;
-        CHANNEL_SIZE    : --! @brief CHANNEL SIZE :
-                          --! チャネル数を指定する.
-                          --! チャネル数が可変の場合は 0 を指定する.
-                          integer := 0;
-        MAX_D_SIZE      : --! @brief MAX OUTPUT CHANNEL SIZE :
-                          integer := 1
+        PARAM           : --! @brief CONVOLUTION PARAMETER :
+                          --! 畳み込みのパラメータを指定する.
+                          CONV_PARAM_TYPE := NEW_CONV_PARAM(
+                              KERNEL_SIZE => CONV_KERNEL_SIZE_3x3,
+                              STRIDE      => NEW_IMAGE_STREAM_STRIDE_PARAM(1,1),
+                              I_STREAM    => NEW_IMAGE_STREAM_PARAM(8,1,1,1),
+                              I_SHAPE     => NEW_IMAGE_SHAPE_CONSTANT(8,32,0,32,32),
+                              B_ELEM_BITS => 16,
+                              W_ELEM_BITS =>  8,
+                              M_ELEM_BITS => 16,
+                              O_ELEM_BITS => 16,
+                              O_SHAPE_C   => NEW_IMAGE_SHAPE_SIDE_CONSTANT(32)
+                          );
+        SIGN            : --! 演算時の正負符号の有無を指定する.
+                          --! * SIGN=TRUE  の場合、符号有り(  signed)で計算する.
+                          --! * SIGN=FALSE の場合、符号無し(unsigned)で計算する.
+                          boolean := TRUE
     );
     port (
     -------------------------------------------------------------------------------
@@ -446,47 +447,80 @@ component CONV_INTPUT_BUFFER
                           --! 同期リセット信号.アクティブハイ.
                           in  std_logic;
     -------------------------------------------------------------------------------
-    -- 
+    -- 各種パラメータ入力 I/F
     -------------------------------------------------------------------------------
-        D_SIZE          : --! @brief OUTPUT CHANNEL SIZE :
-                          in  integer range 0 to MAX_D_SIZE := 1;
+        C_SIZE          : --! @brief CONVOLUTION C CHANNEL SIZE :
+                          in  integer range 0 to PARAM.SHAPE.C.MAX_SIZE := PARAM.SHAPE.C.SIZE;
+        D_SIZE          : --! @brief CONVOLUTION D CHANNEL SIZE :
+                          in  integer range 0 to PARAM.SHAPE.D.MAX_SIZE := PARAM.SHAPE.D.SIZE;
+        X_SIZE          : --! @brief CONVOLUTION X SIZE :
+                          in  integer range 0 to PARAM.SHAPE.X.MAX_SIZE := PARAM.SHAPE.X.SIZE;
+        Y_SIZE          : --! @brief CONVOLUTION Y SIZE :
+                          in  integer range 0 to PARAM.SHAPE.Y.MAX_SIZE := PARAM.SHAPE.Y.SIZE;
     -------------------------------------------------------------------------------
     -- 入力側 I/F
     -------------------------------------------------------------------------------
-        I_DATA          : --! @brief INPUT IMAGE STREAM DATA :
-                          --! イメージストリームデータ入力.
-                          in  std_logic_vector(I_PARAM.DATA.SIZE-1 downto 0);
-        I_VALID         : --! @brief INPUT IMAGE STREAM DATA VALID :
-                          --! 入力イメージストリームデータ有効信号.
+        I_DATA          : --! @brief INPUT IMAGE DATA :
+                          --! イメージデータ入力.
+                          in  std_logic_vector(PARAM.I_STREAM.DATA.SIZE-1 downto 0);
+        I_VALID         : --! @brief INPUT IMAGE DATA VALID :
+                          --! 入力イメージデータ有効信号.
                           --! * I_DATAが有効であることを示す.
-                          --! * I_VALID='1'and I_READY='1'でイメージストリームデー
-                          --!   タがキューに取り込まれる.
+                          --! * I_VALID='1'and I_READY='1'でイメージデータが取り込
+                          --!   まれる.
                           in  std_logic;
-        I_READY         : --! @brief INPUT IMAGE STREAM DATA READY :
-                          --! 入力イメージストリームデータレディ信号.
-                          --! * キューが次のイメージストリームデータを入力出来るこ
-                          --!   とを示す.
-                          --! * I_VALID='1'and I_READY='1'でイメージストリームデー
-                          --!   タがキューに取り込まれる.
+        I_READY         : --! @brief INPUT IMAGE DATA READY :
+                          --! 入力イメージデータレディ信号.
+                          --! * 次のイメージデータを入力出来ることを示す.
+                          --! * I_VALID='1'and I_READY='1'でイメージデータが取り込
+                          --!   まれる.
+                          out std_logic;
+        W_DATA          : --! @brief INPUT WEIGHT DATA :
+                          --! 重みデータ入力.
+                          in  std_logic_vector(PARAM.W_STREAM.DATA.SIZE-1 downto 0);
+        W_VALID         : --! @brief INPUT WEIGHT DATA VALID :
+                          --! 入力重みデータ有効信号.
+                          --! * W_DATAが有効であることを示す.
+                          --! * W_VALID='1'and W_READY='1'で重みデータが取り込ま
+                          --!   れる.
+                          in  std_logic;
+        W_READY         : --! @brief INPUT WEIGHT DATA READY :
+                          --! 入力重みデータレディ信号.
+                          --! * 次の重みデータを入力出来ることを示す.
+                          --! * W_VALID='1'and W_READY='1'で重みデータが取り込ま
+                          --!   れる.
+                          out std_logic;
+        B_DATA          : --! @brief INPUT BIAS DATA :
+                          --! バイアスデータ入力.
+                          in  std_logic_vector(PARAM.B_STREAM.DATA.SIZE-1 downto 0);
+        B_VALID         : --! @brief INPUT BIAS DATA VALID :
+                          --! 入力バイアスデータ有効信号.
+                          --! * B_DATAが有効であることを示す.
+                          --! * B_VALID='1'and B_READY='1'でバイアスデータが取り込
+                          --!   まれる.
+                          in  std_logic;
+        B_READY         : --! @brief INPUT BIAS DATA READY :
+                          --! 入力バイアスデータレディ信号.
+                          --! * 次のバイアスデータを入力出来ることを示す.
+                          --! * B_VALID='1'and B_READY='1'でバイアスデータが取り込
+                          --!   まれる.
                           out std_logic;
     -------------------------------------------------------------------------------
     -- 出力側 I/F
     -------------------------------------------------------------------------------
-        O_DATA          : --! @brief OUTPUT CONVOLUTION PIPELINE DATA :
-                          --! パイプラインデータ出力.
-                          out std_logic_vector(O_PARAM.DATA.SIZE-1 downto 0);
-        O_VALID         : --! @brief OUTPUT CONVOLUTION PIPELINE DATA VALID :
-                          --! 出力パイプラインデータ有効信号.
+        O_DATA          : --! @brief OUTPUT IMAGE DATA :
+                          --! イメージデータ出力.
+                          out std_logic_vector(PARAM.O_STREAM.DATA.SIZE-1 downto 0);
+        O_VALID         : --! @brief OUTPUT IMAGE DATA VALID :
+                          --! 出力イメージデータ有効信号.
                           --! * O_DATA が有効であることを示す.
-                          --! * O_VALID='1'and O_READY='1'でパイプラインデータが
-                          --!   キューから取り除かれる.
+                          --! * O_VALID='1'and O_READY='1'でイメージデータがキュー
+                          --!   から取り除かれる.
                           out std_logic;
-        O_READY         : --! @brief OUTPUT CONVOLUTION PIPELINE DATA READY :
-                          --! 出力パイプラインデータレディ信号.
-                          --! * キューから次のパイプラインデータを取り除く準備が出
-                          --!   来ていることを示す.
-                          --! * O_VALID='1'and O_READY='1'でパイプラインデータが
-                          --!   キューから取り除かれる.
+        O_READY         : --! @brief OUTPUT IMAGE DATA READY :
+                          --! 出力イメージデータレディ信号.
+                          --! * O_VALID='1'and O_READY='1'でイメージデータがキュー
+                          --!   から取り除かれる.
                           in  std_logic
     );
 end component;

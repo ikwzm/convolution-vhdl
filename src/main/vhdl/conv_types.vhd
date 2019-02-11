@@ -183,6 +183,7 @@ package CONV_TYPES is
                   D_UNROLL          :  integer;
                   X_UNROLL          :  integer;
                   Y_UNROLL          :  integer;
+                  SHAPE             :  IMAGE_SHAPE_TYPE;
     end record;
     -------------------------------------------------------------------------------
     --! @brief Convolution の各種パラメータを設定する関数
@@ -224,6 +225,22 @@ package CONV_TYPES is
                   STREAM_PARAM      :  IMAGE_STREAM_PARAM_TYPE;
                   KERNEL_SIZE       :  CONV_KERNEL_SIZE_TYPE;
                   STREAM_DATA       :  std_logic_vector)
+                  return               std_logic_vector;
+    -------------------------------------------------------------------------------
+    --! @brief バイアス入力 Stream を Convolution Pipeline に変換する関数
+    -------------------------------------------------------------------------------
+    function  CONV_PIPELINE_FROM_BIAS_STREAM(
+                  PIPELINE_PARAM    :  CONV_PIPELINE_PARAM_TYPE;
+                  STREAM_PARAM      :  IMAGE_STREAM_PARAM_TYPE;
+                  STREAM_DATA       :  std_logic_vector)
+                  return               std_logic_vector;
+    -------------------------------------------------------------------------------
+    --! @brief Convolution Pipeline を イメージ出力 Stream に変換する関数
+    -------------------------------------------------------------------------------
+    function  CONV_PIPELINE_TO_IMAGE_STREAM(
+                  STREAM_PARAM      :  IMAGE_STREAM_PARAM_TYPE;
+                  PIPELINE_PARAM    :  CONV_PIPELINE_PARAM_TYPE;
+                  PIPELINE_DATA     :  std_logic_vector)
                   return               std_logic_vector;
 end CONV_TYPES;
 -----------------------------------------------------------------------------------
@@ -485,13 +502,6 @@ package body CONV_TYPES is
                   return               CONV_PARAM_TYPE
     is
         variable  param             :  CONV_PARAM_TYPE;
-        variable  a_shape_c         :  IMAGE_SHAPE_SIDE_TYPE; 
-        variable  a_shape_d         :  IMAGE_SHAPE_SIDE_TYPE; 
-        variable  a_shape_x         :  IMAGE_SHAPE_SIDE_TYPE; 
-        variable  a_shape_y         :  IMAGE_SHAPE_SIDE_TYPE;
-        variable  o_shape_d         :  IMAGE_SHAPE_SIDE_TYPE; 
-        variable  o_shape_x         :  IMAGE_SHAPE_SIDE_TYPE; 
-        variable  o_shape_y         :  IMAGE_SHAPE_SIDE_TYPE;
         variable  a_stream_x_size   :  integer;
         variable  a_stream_y_size   :  integer;
         variable  pipeline_shape_c  :  IMAGE_SHAPE_SIDE_TYPE;
@@ -545,8 +555,8 @@ package body CONV_TYPES is
                                  ELEM_BITS => B_ELEM_BITS,
                                  SHAPE     => NEW_IMAGE_SHAPE(
                                                   ELEM_BITS => B_ELEM_BITS,
-                                                  C         => NEW_IMAGE_SHAPE_SIDE_CONSTANT(0),
-                                                  D         => NEW_IMAGE_SHAPE_SIDE_CONSTANT(D_UNROLL),
+                                                  C         => NEW_IMAGE_SHAPE_SIDE_CONSTANT(D_UNROLL),
+                                                  D         => NEW_IMAGE_SHAPE_SIDE_CONSTANT(0),
                                                   X         => NEW_IMAGE_SHAPE_SIDE_CONSTANT(0),
                                                   Y         => NEW_IMAGE_SHAPE_SIDE_CONSTANT(0)
                                               ),
@@ -617,6 +627,20 @@ package body CONV_TYPES is
         ---------------------------------------------------------------------------
         --
         ---------------------------------------------------------------------------
+        param.B_PIPELINE  := NEW_CONV_PIPELINE_PARAM(
+                                 ELEM_BITS => B_ELEM_BITS,
+                                 SHAPE     => NEW_IMAGE_SHAPE(
+                                                  ELEM_BITS => B_ELEM_BITS    ,
+                                                  C         => pipeline_shape_c,
+                                                  D         => pipeline_shape_d,
+                                                  X         => pipeline_shape_x,
+                                                  Y         => pipeline_shape_y
+                                              ),
+                                 STRIDE    => pipeline_stride
+                             );
+        ---------------------------------------------------------------------------
+        --
+        ---------------------------------------------------------------------------
         param.O_PIPELINE  := NEW_CONV_PIPELINE_PARAM(
                                  ELEM_BITS => O_ELEM_BITS,
                                  SHAPE     => NEW_IMAGE_SHAPE(
@@ -644,31 +668,34 @@ package body CONV_TYPES is
                                  STRIDE    => pipeline_stride
                              );
         ---------------------------------------------------------------------------
+        --
+        ---------------------------------------------------------------------------
+        param.SHAPE   := NEW_IMAGE_SHAPE(
+                             ELEM_BITS => O_ELEM_BITS,
+                             C         => UPDATE_IMAGE_SHAPE_SIDE(I_SHAPE.C, I_STREAM.BORDER_TYPE, 0               , 0               ),
+                             D         => UPDATE_IMAGE_SHAPE_SIDE(O_SHAPE_C, I_STREAM.BORDER_TYPE, 0               , 0               ),
+                             X         => UPDATE_IMAGE_SHAPE_SIDE(I_SHAPE.X, I_STREAM.BORDER_TYPE, KERNEL_SIZE.X.LO, KERNEL_SIZE.X.HI),
+                             Y         => UPDATE_IMAGE_SHAPE_SIDE(I_SHAPE.Y, I_STREAM.BORDER_TYPE, KERNEL_SIZE.Y.LO, KERNEL_SIZE.Y.HI)
+                         );
+        ---------------------------------------------------------------------------
         -- 
         ---------------------------------------------------------------------------
-        a_shape_c := UPDATE_IMAGE_SHAPE_SIDE(I_SHAPE.C, I_STREAM.BORDER_TYPE, 0               , 0               );
-        a_shape_d := UPDATE_IMAGE_SHAPE_SIDE(O_SHAPE_C, I_STREAM.BORDER_TYPE, 0               , 0               );
-        a_shape_x := UPDATE_IMAGE_SHAPE_SIDE(I_SHAPE.X, I_STREAM.BORDER_TYPE, KERNEL_SIZE.X.LO, KERNEL_SIZE.X.HI);
-        a_shape_y := NEW_IMAGE_SHAPE_SIDE_AUTO(I_SHAPE.Y.MAX_SIZE, TRUE);
         param.A_SHAPE := NEW_IMAGE_SHAPE(
                              ELEM_BITS => I_STREAM.ELEM_BITS,
-                             C         => a_shape_c,
-                             D         => a_shape_d,
-                             X         => a_shape_x,
-                             Y         => a_shape_y
+                             C         => param.SHAPE.C,
+                             D         => param.SHAPE.D,
+                             X         => param.SHAPE.X,
+                             Y         => NEW_IMAGE_SHAPE_SIDE_AUTO(I_SHAPE.Y.MAX_SIZE, TRUE)
                          );
         ---------------------------------------------------------------------------
         --
         ---------------------------------------------------------------------------
-        o_shape_d := NEW_IMAGE_SHAPE_SIDE_CONSTANT(0);
-        o_shape_x := UPDATE_IMAGE_SHAPE_SIDE(I_SHAPE.X, I_STREAM.BORDER_TYPE, KERNEL_SIZE.X.LO, KERNEL_SIZE.X.HI);
-        o_shape_y := UPDATE_IMAGE_SHAPE_SIDE(I_SHAPE.Y, I_STREAM.BORDER_TYPE, KERNEL_SIZE.Y.LO, KERNEL_SIZE.Y.HI);
         param.O_SHAPE := NEW_IMAGE_SHAPE(
                              ELEM_BITS => O_ELEM_BITS,
                              C         => O_SHAPE_C,
-                             D         => o_shape_d,
-                             X         => o_shape_x,
-                             Y         => o_shape_y
+                             D         => NEW_IMAGE_SHAPE_SIDE_CONSTANT(0),
+                             X         => param.SHAPE.X,
+                             Y         => param.SHAPE.Y
                          );
         return param;
     end function;
@@ -1021,4 +1048,225 @@ package body CONV_TYPES is
         ---------------------------------------------------------------------------
         return o_data;
     end function;
+    -------------------------------------------------------------------------------
+    --! @brief バイアス入力 Stream を Convolution Pipeline に変換する関数
+    -------------------------------------------------------------------------------
+    function  CONV_PIPELINE_FROM_BIAS_STREAM(
+                  PIPELINE_PARAM    :  CONV_PIPELINE_PARAM_TYPE;
+                  STREAM_PARAM      :  IMAGE_STREAM_PARAM_TYPE;
+                  STREAM_DATA       :  std_logic_vector)
+                  return               std_logic_vector
+    is
+        alias     i_data            :  std_logic_vector(STREAM_PARAM  .DATA.SIZE-1 downto 0) is STREAM_DATA;
+        variable  o_data            :  std_logic_vector(PIPELINE_PARAM.DATA.SIZE-1 downto 0);
+        variable  element           :  std_logic_vector(STREAM_PARAM  .ELEM_BITS-1 downto 0);
+        variable  i_c_atrb          :  IMAGE_STREAM_ATRB_TYPE;
+        variable  o_c_valid         :  std_logic_vector(PIPELINE_PARAM.DATA.ATRB_FIELD.C.VALID.SIZE-1 downto 0);
+        variable  o_d_valid         :  std_logic_vector(PIPELINE_PARAM.DATA.ATRB_FIELD.D.VALID.SIZE-1 downto 0);
+        variable  o_x_valid         :  std_logic_vector(PIPELINE_PARAM.DATA.ATRB_FIELD.X.VALID.SIZE-1 downto 0);
+        variable  o_y_valid         :  std_logic_vector(PIPELINE_PARAM.DATA.ATRB_FIELD.Y.VALID.SIZE-1 downto 0);
+    begin
+        o_data := (others => '0');
+        ---------------------------------------------------------------------------
+        --
+        ---------------------------------------------------------------------------
+        for i_c_pos in 0 to STREAM_PARAM.SHAPE.C.SIZE-1 loop
+            element := GET_ELEMENT_FROM_IMAGE_STREAM_DATA(
+                           PARAM   => STREAM_PARAM,
+                           C       => i_c_pos + STREAM_PARAM.SHAPE.C.LO,
+                           D       =>           STREAM_PARAM.SHAPE.D.LO,
+                           X       =>           STREAM_PARAM.SHAPE.X.LO,
+                           Y       =>           STREAM_PARAM.SHAPE.Y.LO,
+                           DATA    => i_data
+                        );
+            for o_c_pos in 0 to PIPELINE_PARAM.SHAPE.Y.SIZE-1 loop
+            for o_y_pos in 0 to PIPELINE_PARAM.SHAPE.Y.SIZE-1 loop
+            for o_x_pos in 0 to PIPELINE_PARAM.SHAPE.X.SIZE-1 loop
+                SET_ELEMENT_TO_DATA(
+                           PARAM   => PIPELINE_PARAM,
+                           C       => o_c_pos + PIPELINE_PARAM.SHAPE.C.LO,
+                           D       => i_c_pos + PIPELINE_PARAM.SHAPE.D.LO,
+                           X       => o_x_pos + PIPELINE_PARAM.SHAPE.X.LO,
+                           Y       => o_y_pos + PIPELINE_PARAM.SHAPE.Y.LO,
+                           ELEMENT => element,
+                           DATA    => o_data
+                );
+            end loop;
+            end loop;
+            end loop;
+        end loop;
+        ---------------------------------------------------------------------------
+        --
+        ---------------------------------------------------------------------------
+        o_c_valid := (others => '1');
+        o_data(PIPELINE_PARAM.DATA.ATRB_FIELD.C.VALID.HI downto PIPELINE_PARAM.DATA.ATRB_FIELD.C.VALID.LO) := o_c_valid;
+        o_data(PIPELINE_PARAM.DATA.ATRB_FIELD.C.START_POS) := '0';
+        o_data(PIPELINE_PARAM.DATA.ATRB_FIELD.C.LAST_POS ) := '0';
+        ---------------------------------------------------------------------------
+        --
+        ---------------------------------------------------------------------------
+        o_d_valid := (others => '0');
+        for o_d_pos in 0 to PIPELINE_PARAM.SHAPE.D.SIZE-1 loop
+                i_c_atrb := GET_ATRB_C_FROM_IMAGE_STREAM_DATA(
+                                PARAM => STREAM_PARAM,
+                                C     => o_d_pos + STREAM_PARAM.SHAPE.C.LO,
+                                DATA  => i_data
+                            );
+                if (i_c_atrb.VALID) then
+                    o_d_valid(o_d_pos) := '1';
+                end if;
+        end loop;
+        o_data(PIPELINE_PARAM.DATA.ATRB_FIELD.D.VALID.HI downto PIPELINE_PARAM.DATA.ATRB_FIELD.D.VALID.LO) := o_d_valid;
+        if (IMAGE_STREAM_DATA_IS_START_C(STREAM_PARAM, i_data) = TRUE) then
+            o_data(PIPELINE_PARAM.DATA.ATRB_FIELD.D.START_POS) := '1';
+        else
+            o_data(PIPELINE_PARAM.DATA.ATRB_FIELD.D.START_POS) := '0';
+        end if;
+        if (IMAGE_STREAM_DATA_IS_LAST_C( STREAM_PARAM, i_data) = TRUE) then
+            o_data(PIPELINE_PARAM.DATA.ATRB_FIELD.D.LAST_POS ) := '1';
+        else
+            o_data(PIPELINE_PARAM.DATA.ATRB_FIELD.D.LAST_POS ) := '0';
+        end if;
+        ---------------------------------------------------------------------------
+        --
+        ---------------------------------------------------------------------------
+        o_x_valid := (others => '1');
+        o_data(PIPELINE_PARAM.DATA.ATRB_FIELD.X.VALID.HI downto PIPELINE_PARAM.DATA.ATRB_FIELD.X.VALID.LO) := o_x_valid;
+        o_data(PIPELINE_PARAM.DATA.ATRB_FIELD.X.START_POS) := '0';
+        o_data(PIPELINE_PARAM.DATA.ATRB_FIELD.X.LAST_POS ) := '0';
+        ---------------------------------------------------------------------------
+        --
+        ---------------------------------------------------------------------------
+        o_y_valid := (others => '1');
+        o_data(PIPELINE_PARAM.DATA.ATRB_FIELD.Y.VALID.HI downto PIPELINE_PARAM.DATA.ATRB_FIELD.Y.VALID.LO) := o_y_valid;
+        o_data(PIPELINE_PARAM.DATA.ATRB_FIELD.Y.START_POS) := '0';
+        o_data(PIPELINE_PARAM.DATA.ATRB_FIELD.Y.LAST_POS ) := '0';
+        ---------------------------------------------------------------------------
+        --
+        ---------------------------------------------------------------------------
+        return o_data;
+    end function;
+    -------------------------------------------------------------------------------
+    --! @brief Convolution Pipeline を イメージ出力 Stream に変換する関数
+    -------------------------------------------------------------------------------
+    function  CONV_PIPELINE_TO_IMAGE_STREAM(
+                  STREAM_PARAM      :  IMAGE_STREAM_PARAM_TYPE;
+                  PIPELINE_PARAM    :  CONV_PIPELINE_PARAM_TYPE;
+                  PIPELINE_DATA     :  std_logic_vector)
+                  return               std_logic_vector
+    is
+        alias     i_data            :  std_logic_vector(PIPELINE_PARAM.DATA.SIZE-1 downto 0) is PIPELINE_DATA;
+        variable  o_data            :  std_logic_vector(STREAM_PARAM  .DATA.SIZE-1 downto 0);
+        variable  element           :  std_logic_vector(STREAM_PARAM  .ELEM_BITS-1 downto 0);
+        variable  o_c_atrb_vec      :  IMAGE_STREAM_ATRB_VECTOR(0 to STREAM_PARAM.SHAPE.C.SIZE-1);
+        variable  o_x_atrb_vec      :  IMAGE_STREAM_ATRB_VECTOR(0 to STREAM_PARAM.SHAPE.X.SIZE-1);
+        variable  o_y_atrb_vec      :  IMAGE_STREAM_ATRB_VECTOR(0 to STREAM_PARAM.SHAPE.Y.SIZE-1);
+        function  GEN_ATRB_VECTOR(
+                     VALID          :  std_logic_vector;
+                     START          :  std_logic;
+                     LAST           :  std_logic)
+                     return            IMAGE_STREAM_ATRB_VECTOR
+        is
+            alias    i_valid        :  std_logic_vector(VALID'length-1 downto 0) is VALID;
+            variable atrb_vec       :  IMAGE_STREAM_ATRB_VECTOR(0 to VALID'length-1);
+            variable atrb_start     :  boolean;
+            variable atrb_last      :  boolean;
+        begin
+            for i in atrb_vec'low to atrb_vec'high loop
+                atrb_vec(i).VALID := (i_valid(i) = '1');
+            end loop;
+            atrb_start := (START = '1');
+            for i in atrb_vec'low to atrb_vec'high loop
+                atrb_vec(i).START := atrb_start;
+                if (i_valid(i) = '1') then
+                    atrb_start := FALSE;
+                end if;
+            end loop;
+            atrb_last  := (LAST = '1');
+            for i in atrb_vec'high to atrb_vec'low loop
+                atrb_vec(i).LAST := atrb_last;
+                if (i_valid(i) = '1') then
+                    atrb_last := FALSE;
+                end if;
+            end loop;
+            return atrb_vec;
+        end function;
+    begin
+        o_data := (others => '0');
+        ---------------------------------------------------------------------------
+        --
+        ---------------------------------------------------------------------------
+        for o_y_pos in 0 to STREAM_PARAM.SHAPE.Y.SIZE-1 loop
+        for o_x_pos in 0 to STREAM_PARAM.SHAPE.X.SIZE-1 loop
+        for o_c_pos in 0 to STREAM_PARAM.SHAPE.C.SIZE-1 loop
+            element := GET_ELEMENT_FROM_DATA(
+                           PARAM   => PIPELINE_PARAM,
+                           C       =>           PIPELINE_PARAM.SHAPE.C.LO,
+                           D       => o_c_pos + PIPELINE_PARAM.SHAPE.D.LO,
+                           X       => o_x_pos + PIPELINE_PARAM.SHAPE.X.LO,
+                           Y       => o_y_pos + PIPELINE_PARAM.SHAPE.Y.LO,
+                           DATA    => i_data
+                        );
+            SET_ELEMENT_TO_IMAGE_STREAM_DATA(
+                           PARAM   => STREAM_PARAM,
+                           C       => o_c_pos + STREAM_PARAM.SHAPE.C.LO,
+                           D       =>           STREAM_PARAM.SHAPE.D.LO,
+                           X       => o_x_pos + STREAM_PARAM.SHAPE.X.LO,
+                           Y       => o_y_pos + STREAM_PARAM.SHAPE.Y.LO,
+                           ELEMENT => element,
+                           DATA    => o_data
+                );
+        end loop;
+        end loop;
+        end loop;
+        ---------------------------------------------------------------------------
+        --
+        ---------------------------------------------------------------------------
+        o_c_atrb_vec := GEN_ATRB_VECTOR(
+                            VALID => i_data(PIPELINE_PARAM.DATA.ATRB_FIELD.D.HI downto PIPELINE_PARAM.DATA.ATRB_FIELD.D.LO),
+                            START => i_data(PIPELINE_PARAM.DATA.ATRB_FIELD.D.START_POS),
+                            LAST  => i_data(PIPELINE_PARAM.DATA.ATRB_FIELD.D.LAST_POS )
+                        );
+        for o_c_pos in 0 to STREAM_PARAM.SHAPE.C.SIZE-1 loop
+            SET_ATRB_C_TO_IMAGE_STREAM_DATA(
+                  PARAM => STREAM_PARAM                     ,
+                  C     => o_c_pos + STREAM_PARAM.SHAPE.C.LO,
+                  ATRB  => o_c_atrb_vec(o_c_pos)            ,
+                  DATA  => o_data
+             );
+        end loop;
+        ---------------------------------------------------------------------------
+        --
+        ---------------------------------------------------------------------------
+        o_x_atrb_vec := GEN_ATRB_VECTOR(
+                            VALID => i_data(PIPELINE_PARAM.DATA.ATRB_FIELD.X.HI downto PIPELINE_PARAM.DATA.ATRB_FIELD.X.LO),
+                            START => i_data(PIPELINE_PARAM.DATA.ATRB_FIELD.X.START_POS),
+                            LAST  => i_data(PIPELINE_PARAM.DATA.ATRB_FIELD.X.LAST_POS )
+                        );
+        for o_x_pos in 0 to STREAM_PARAM.SHAPE.X.SIZE-1 loop
+            SET_ATRB_X_TO_IMAGE_STREAM_DATA(
+                  PARAM => STREAM_PARAM                     ,
+                  X     => o_x_pos + STREAM_PARAM.SHAPE.X.LO,
+                  ATRB  => o_x_atrb_vec(o_x_pos)            ,
+                  DATA  => o_data
+             );
+        end loop;
+        ---------------------------------------------------------------------------
+        --
+        ---------------------------------------------------------------------------
+        o_y_atrb_vec := GEN_ATRB_VECTOR(
+                            VALID => i_data(PIPELINE_PARAM.DATA.ATRB_FIELD.Y.HI downto PIPELINE_PARAM.DATA.ATRB_FIELD.Y.LO),
+                            START => i_data(PIPELINE_PARAM.DATA.ATRB_FIELD.Y.START_POS),
+                            LAST  => i_data(PIPELINE_PARAM.DATA.ATRB_FIELD.Y.LAST_POS )
+                        );
+        for o_y_pos in 0 to STREAM_PARAM.SHAPE.Y.SIZE-1 loop
+            SET_ATRB_Y_TO_IMAGE_STREAM_DATA(
+                  PARAM => STREAM_PARAM                     ,
+                  Y     => o_y_pos + STREAM_PARAM.SHAPE.Y.LO,
+                  ATRB  => o_y_atrb_vec(o_y_pos)            ,
+                  DATA  => o_data
+             );
+        end loop;
+    end function;
+        
 end package body;
