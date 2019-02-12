@@ -2,7 +2,7 @@
 --!     @file    conv_components.vhd                                             --
 --!     @brief   CONVOLUTION COMPONENT LIBRARY DESCRIPTION                       --
 --!     @version 0.1.0                                                           --
---!     @date    2019/02/11                                                      --
+--!     @date    2019/02/12                                                      --
 --!     @author  Ichiro Kawazome <ichiro_k@ca2.so-net.ne.jp>                     --
 -----------------------------------------------------------------------------------
 -----------------------------------------------------------------------------------

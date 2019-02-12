@@ -2,7 +2,7 @@
 --!     @file    conv_types.vhd
 --!     @brief   Convolution Engine Types Package.
 --!     @version 0.1.0
---!     @date    2019/2/6
+--!     @date    2019/2/12
 --!     @author  Ichiro Kawazome <ichiro_k@ca2.so-net.ne.jp>
 -----------------------------------------------------------------------------------
 --
@@ -304,6 +304,7 @@ package body CONV_TYPES is
     begin
         param.VALID.LO  := LO;
         param.VALID.HI  := param.VALID.LO  + SIZE-1;
+        param.VALID.SIZE:= SIZE;
         param.START_POS := param.VALID.HI  + 1;
         param.LAST_POS  := param.START_POS + 1;
         param.LO        := param.VALID.LO;
@@ -544,8 +545,8 @@ package body CONV_TYPES is
                                                   Y         => NEW_IMAGE_SHAPE_SIDE_CONSTANT(KERNEL_SIZE.Y.LO, KERNEL_SIZE.Y.LO + a_stream_y_size - 1)
                                               ),
                                  STRIDE    => NEW_IMAGE_STREAM_STRIDE_PARAM(
-                                                  X         => STRIDE.X + X_UNROLL,
-                                                  Y         => STRIDE.Y + Y_UNROLL
+                                                  X         => STRIDE.X + X_UNROLL - 1,
+                                                  Y         => STRIDE.Y + Y_UNROLL - 1
                                               )
                              );
         ---------------------------------------------------------------------------
@@ -1223,7 +1224,7 @@ package body CONV_TYPES is
         --
         ---------------------------------------------------------------------------
         o_c_atrb_vec := GEN_ATRB_VECTOR(
-                            VALID => i_data(PIPELINE_PARAM.DATA.ATRB_FIELD.D.HI downto PIPELINE_PARAM.DATA.ATRB_FIELD.D.LO),
+                            VALID => i_data(PIPELINE_PARAM.DATA.ATRB_FIELD.D.VALID.HI downto PIPELINE_PARAM.DATA.ATRB_FIELD.D.VALID.LO),
                             START => i_data(PIPELINE_PARAM.DATA.ATRB_FIELD.D.START_POS),
                             LAST  => i_data(PIPELINE_PARAM.DATA.ATRB_FIELD.D.LAST_POS )
                         );
@@ -1239,7 +1240,7 @@ package body CONV_TYPES is
         --
         ---------------------------------------------------------------------------
         o_x_atrb_vec := GEN_ATRB_VECTOR(
-                            VALID => i_data(PIPELINE_PARAM.DATA.ATRB_FIELD.X.HI downto PIPELINE_PARAM.DATA.ATRB_FIELD.X.LO),
+                            VALID => i_data(PIPELINE_PARAM.DATA.ATRB_FIELD.X.VALID.HI downto PIPELINE_PARAM.DATA.ATRB_FIELD.X.VALID.LO),
                             START => i_data(PIPELINE_PARAM.DATA.ATRB_FIELD.X.START_POS),
                             LAST  => i_data(PIPELINE_PARAM.DATA.ATRB_FIELD.X.LAST_POS )
                         );
@@ -1255,7 +1256,7 @@ package body CONV_TYPES is
         --
         ---------------------------------------------------------------------------
         o_y_atrb_vec := GEN_ATRB_VECTOR(
-                            VALID => i_data(PIPELINE_PARAM.DATA.ATRB_FIELD.Y.HI downto PIPELINE_PARAM.DATA.ATRB_FIELD.Y.LO),
+                            VALID => i_data(PIPELINE_PARAM.DATA.ATRB_FIELD.Y.VALID.HI downto PIPELINE_PARAM.DATA.ATRB_FIELD.Y.VALID.LO),
                             START => i_data(PIPELINE_PARAM.DATA.ATRB_FIELD.Y.START_POS),
                             LAST  => i_data(PIPELINE_PARAM.DATA.ATRB_FIELD.Y.LAST_POS )
                         );
@@ -1267,6 +1268,7 @@ package body CONV_TYPES is
                   DATA  => o_data
              );
         end loop;
+        return o_data;
     end function;
         
 end package body;
