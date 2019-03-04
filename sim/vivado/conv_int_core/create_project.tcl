@@ -79,6 +79,9 @@ set obj [get_filesets sim_1]
 # set_property "top" "CONV_INT_CORE_TEST_4_8_4x1x1_4x1x1x1"  $obj
 # set_property "generic" "SCENARIO_FILE=../../../../../../sim/ghdl-0.35/conv_int_core/test_4_8_4x1x1_4x1x1x1.snr FINISH_ABORT=true" $obj
 
+set_property "top" "CONV_INT_CORE_TEST_BENCH_3x3_8_8x12x12_4x10x10_1111" $obj
+set_property "generic" "SCENARIO_FILE=../../../../../../src/test/scenarios/conv_int_core/test_3x3_8_8x12x12_4x10x10_1111.snr FINISH_ABORT=true" $obj
+
 update_compile_order -fileset sources_1
 update_compile_order -fileset sim_1
 

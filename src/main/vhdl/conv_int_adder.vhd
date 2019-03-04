@@ -1,8 +1,8 @@
 -----------------------------------------------------------------------------------
 --!     @file    conv_int_adder.vhd
 --!     @brief   Convolution Integer Adder Module
---!     @version 0.1.0
---!     @date    2019/2/4
+--!     @version 0.2.0
+--!     @date    2019/2/27
 --!     @author  Ichiro Kawazome <ichiro_k@ca2.so-net.ne.jp>
 -----------------------------------------------------------------------------------
 --
@@ -36,8 +36,8 @@
 -----------------------------------------------------------------------------------
 library ieee;
 use     ieee.std_logic_1164.all;
-library CONVOLUTION;
-use     CONVOLUTION.CONV_TYPES.all;
+library PIPEWORK;
+use     PIPEWORK.IMAGE_TYPES.all;
 -----------------------------------------------------------------------------------
 --! @brief Convolution Integer Adder Module
 -----------------------------------------------------------------------------------
@@ -51,7 +51,7 @@ entity  CONV_INT_ADDER is
                           --!     I_PARAM.SHAPE.X.SIZE  = O_PARAM.SHAPE.X.SIZE
                           --!     I_PARAM.SHAPE.Y.SIZE  = O_PARAM.SHAPE.Y.SIZE
                           --!     I_PARAM.ELEM_BITS    <= O_PARAM.ELEM_BITS (桁あふれに注意)
-                          CONV_PIPELINE_PARAM_TYPE := NEW_CONV_PIPELINE_PARAM(8,0,2,1,1,1);
+                          IMAGE_STREAM_PARAM_TYPE := NEW_IMAGE_STREAM_PARAM(8,2,1,1);
         O_PARAM         : --! @brief OUTPUT PIPELINE DATA PARAMETER :
                           --! パイプラインデータ出力ポートのパラメータを指定する.
                           --! * 次の条件を満していなければならない.
@@ -60,7 +60,7 @@ entity  CONV_INT_ADDER is
                           --!     O_PARAM.SHAPE.X.SIZE  = I_PARAM.SHAPE.X.SIZE
                           --!     O_PARAM.SHAPE.Y.SIZE >= I_PARAM.SHAPE.Y.SIZE
                           --!     O_PARAM.ELEM_BITS    >= I_PARAM.ELEM_BITS (桁あふれに注意)
-                          CONV_PIPELINE_PARAM_TYPE := NEW_CONV_PIPELINE_PARAM(8,0,1,1,1,1);
+                          IMAGE_STREAM_PARAM_TYPE := NEW_IMAGE_STREAM_PARAM(8,1,1,1);
         QUEUE_SIZE      : --! パイプラインレジスタの深さを指定する.
                           --! * QUEUE_SIZE=0 の場合は出力にキューが挿入されずダイレ
                           --!   クトに出力される.
@@ -126,9 +126,8 @@ end CONV_INT_ADDER;
 library ieee;
 use     ieee.std_logic_1164.all;
 use     ieee.numeric_std.all;
-library CONVOLUTION;
-use     CONVOLUTION.CONV_TYPES.all;
 library PIPEWORK;
+use     PIPEWORK.IMAGE_TYPES.all;
 use     PIPEWORK.COMPONENTS.PIPELINE_REGISTER;
 architecture RTL of CONV_INT_ADDER is
     -------------------------------------------------------------------------------
@@ -140,7 +139,7 @@ architecture RTL of CONV_INT_ADDER is
                                        0 to I_PARAM.SHAPE.D.SIZE-1,
                                        0 to I_PARAM.SHAPE.C.SIZE-1) of I_ELEM_TYPE;
     signal    i_element       :  I_ELEM_VECTOR;
-    signal    i_c_valid       :  std_logic_vector(I_PARAM.SHAPE.C.SIZE-1 downto 0);
+    signal    i_c_atrb        :  IMAGE_STREAM_ATRB_VECTOR(0 to I_PARAM.SHAPE.C.SIZE-1);
     -------------------------------------------------------------------------------
     --
     -------------------------------------------------------------------------------
@@ -150,7 +149,7 @@ architecture RTL of CONV_INT_ADDER is
                                        0 to O_PARAM.SHAPE.D.SIZE-1,
                                        0 to O_PARAM.SHAPE.C.SIZE-1) of O_ELEM_TYPE;
     signal    o_element       :  O_ELEM_VECTOR;
-    signal    o_c_valid       :  std_logic_vector(O_PARAM.SHAPE.C.SIZE-1 downto 0);
+    signal    o_c_atrb        :  IMAGE_STREAM_ATRB_VECTOR(0 to O_PARAM.SHAPE.C.SIZE-1);
     -------------------------------------------------------------------------------
     --
     -------------------------------------------------------------------------------
@@ -158,28 +157,32 @@ architecture RTL of CONV_INT_ADDER is
 begin
     -------------------------------------------------------------------------------
     -- i_element : 入力パイプラインデータを要素ごとの配列に変換
-    -- i_c_valid : 入力パイプラインデータのチャネル有効信号
+    -- i_c_atrb  : 入力パイプラインデータの属性
     -------------------------------------------------------------------------------
     process (I_DATA) begin
         for y in 0 to I_PARAM.SHAPE.Y.SIZE-1 loop
         for x in 0 to I_PARAM.SHAPE.X.SIZE-1 loop
         for d in 0 to I_PARAM.SHAPE.D.SIZE-1 loop
         for c in 0 to I_PARAM.SHAPE.C.SIZE-1 loop
-            i_element(y,x,d,c) <= GET_ELEMENT_FROM_DATA(I_PARAM, c, d, x, y, I_DATA);
+            i_element(y,x,d,c) <= GET_ELEMENT_FROM_IMAGE_STREAM_DATA(I_PARAM, c, d, x, y, I_DATA);
         end loop;
         end loop;
         end loop;
         end loop;
-        i_c_valid <= I_DATA(I_PARAM.DATA.ATRB_FIELD.C.VALID.HI downto I_PARAM.DATA.ATRB_FIELD.C.VALID.LO);
+        i_c_atrb <= GET_ATRB_C_VECTOR_FROM_IMAGE_STREAM_DATA(I_PARAM, I_DATA);
     end process;
     -------------------------------------------------------------------------------
     -- o_element : 加算結果
     -- o_c_valid : チャネル有効情報
     -------------------------------------------------------------------------------
-    process(i_element, i_c_valid)
-        variable a_c_valid :  std_logic;
+    process(i_element, i_c_atrb)
+        variable a_c_valid :  boolean;
+        variable a_c_start :  boolean;
+        variable a_c_last  :  boolean;
         variable a_element :  std_logic_vector(I_PARAM.ELEM_BITS-1 downto 0);
-        variable b_c_valid :  std_logic;
+        variable b_c_valid :  boolean;
+        variable b_c_start :  boolean;
+        variable b_c_last  :  boolean;
         variable b_element :  std_logic_vector(I_PARAM.ELEM_BITS-1 downto 0);
     begin
         for y in 0 to O_PARAM.SHAPE.Y.SIZE-1 loop
@@ -209,41 +212,57 @@ begin
         end loop;
         for c in 0 to O_PARAM.SHAPE.C.SIZE-1 loop
             if (c*2+0 < I_PARAM.SHAPE.C.SIZE) then
-                a_c_valid := i_c_valid(c*2+0);
+                a_c_valid := i_c_atrb(c*2+0).VALID;
+                a_c_start := i_c_atrb(c*2+0).START;
+                a_c_last  := i_c_atrb(c*2+0).LAST;
             else
-                a_c_valid := '0';
+                a_c_valid := FALSE;
+                a_c_start := FALSE;
+                a_c_last  := FALSE;
             end if;
             if (c*2+1 < I_PARAM.SHAPE.C.SIZE) then
-                b_c_valid := i_c_valid(c*2+1);
+                b_c_valid := i_c_atrb(c*2+1).VALID;
+                b_c_start := i_c_atrb(c*2+1).START;
+                b_c_last  := i_c_atrb(c*2+1).LAST;
             else
-                b_c_valid := '0';
+                b_c_valid := FALSE;
+                b_c_start := FALSE;
+                b_c_last  := FALSE;
             end if;
-            o_c_valid(c) <= a_c_valid or b_c_valid;
+            o_c_atrb(c).VALID <= a_c_valid or b_c_valid;
+            o_c_atrb(c).START <= a_c_start or b_c_start;
+            o_c_atrb(c).LAST  <= a_c_last  or b_c_last ;
         end loop;
     end process;
     -------------------------------------------------------------------------------
     -- q_data    : パイプラインレジスタに入力するデータ
     -------------------------------------------------------------------------------
-    process (o_element, o_c_valid, I_DATA)
+    process (o_element, o_c_atrb, I_DATA)
         variable data :  std_logic_vector(O_PARAM.DATA.SIZE-1 downto 0);
     begin
         for y in 0 to O_PARAM.SHAPE.Y.SIZE-1 loop
         for x in 0 to O_PARAM.SHAPE.X.SIZE-1 loop
         for d in 0 to O_PARAM.SHAPE.D.SIZE-1 loop
         for c in 0 to O_PARAM.SHAPE.C.SIZE-1 loop
-            SET_ELEMENT_TO_DATA(O_PARAM, c, d, x, y, o_element(y,x,d,c), data);
+            SET_ELEMENT_TO_IMAGE_STREAM_DATA(O_PARAM, c, d, x, y, o_element(y,x,d,c), data);
         end loop;        
         end loop;        
         end loop;        
         end loop;
-        data(O_PARAM.DATA.ATRB_FIELD.C.VALID.HI downto O_PARAM.DATA.ATRB_FIELD.C.VALID.LO) := o_c_valid;
-        data(O_PARAM.DATA.ATRB_FIELD.C.START_POS)                                          := I_DATA(I_PARAM.DATA.ATRB_FIELD.C.START_POS);
-        data(O_PARAM.DATA.ATRB_FIELD.C.LAST_POS )                                          := I_DATA(I_PARAM.DATA.ATRB_FIELD.C.LAST_POS );
-        data(O_PARAM.DATA.ATRB_FIELD.D.HI downto O_PARAM.DATA.ATRB_FIELD.D.LO) := I_DATA(I_PARAM.DATA.ATRB_FIELD.D.HI downto I_PARAM.DATA.ATRB_FIELD.D.LO);
-        data(O_PARAM.DATA.ATRB_FIELD.X.HI downto O_PARAM.DATA.ATRB_FIELD.X.LO) := I_DATA(I_PARAM.DATA.ATRB_FIELD.X.HI downto I_PARAM.DATA.ATRB_FIELD.X.LO);
-        data(O_PARAM.DATA.ATRB_FIELD.Y.HI downto O_PARAM.DATA.ATRB_FIELD.Y.LO) := I_DATA(I_PARAM.DATA.ATRB_FIELD.Y.HI downto I_PARAM.DATA.ATRB_FIELD.Y.LO);
-        if (O_PARAM.INFO_BITS > 0) then
-            data(O_PARAM.DATA.INFO_FIELD.HI downto O_PARAM.DATA.INFO_FIELD.LO) := I_DATA(I_PARAM.DATA.INFO_FIELD.HI   downto I_PARAM.DATA.INFO_FIELD.LO  );
+        for c in 0 to O_PARAM.SHAPE.C.SIZE-1 loop
+            SET_ATRB_C_TO_IMAGE_STREAM_DATA(O_PARAM, c+O_PARAM.SHAPE.C.LO, o_c_atrb(c), data);
+        end loop;
+        if (O_PARAM.DATA.ATRB_FIELD.D.SIZE > 0) then
+            data(O_PARAM.DATA.ATRB_FIELD.D.HI downto O_PARAM.DATA.ATRB_FIELD.D.LO) := I_DATA(I_PARAM.DATA.ATRB_FIELD.D.HI downto I_PARAM.DATA.ATRB_FIELD.D.LO);
+        end if;
+        if (O_PARAM.DATA.ATRB_FIELD.X.SIZE > 0) then
+            data(O_PARAM.DATA.ATRB_FIELD.X.HI downto O_PARAM.DATA.ATRB_FIELD.X.LO) := I_DATA(I_PARAM.DATA.ATRB_FIELD.X.HI downto I_PARAM.DATA.ATRB_FIELD.X.LO);
+        end if;
+        if (O_PARAM.DATA.ATRB_FIELD.Y.SIZE > 0) then
+            data(O_PARAM.DATA.ATRB_FIELD.Y.HI downto O_PARAM.DATA.ATRB_FIELD.Y.LO) := I_DATA(I_PARAM.DATA.ATRB_FIELD.Y.HI downto I_PARAM.DATA.ATRB_FIELD.Y.LO);
+        end if;
+        if (O_PARAM.DATA.INFO_FIELD.SIZE   > 0) then
+            data(O_PARAM.DATA.INFO_FIELD.HI   downto O_PARAM.DATA.INFO_FIELD.LO  ) := I_DATA(I_PARAM.DATA.INFO_FIELD.HI   downto I_PARAM.DATA.INFO_FIELD.LO  );
         end if;
         q_data <= data;
     end process;

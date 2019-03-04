@@ -2,7 +2,7 @@
 --!     @file    conv_components.vhd                                             --
 --!     @brief   CONVOLUTION COMPONENT LIBRARY DESCRIPTION                       --
 --!     @version 0.1.0                                                           --
---!     @date    2019/02/12                                                      --
+--!     @date    2019/03/04                                                      --
 --!     @author  Ichiro Kawazome <ichiro_k@ca2.so-net.ne.jp>                     --
 -----------------------------------------------------------------------------------
 -----------------------------------------------------------------------------------
@@ -37,10 +37,10 @@
 -----------------------------------------------------------------------------------
 library ieee;
 use     ieee.std_logic_1164.all;
-library CONVOLUTION;
-use     CONVOLUTION.CONV_TYPES.all;
 library PIPEWORK;
 use     PIPEWORK.IMAGE_TYPES.all;
+library CONVOLUTION;
+use     CONVOLUTION.CONV_TYPES.all;
 -----------------------------------------------------------------------------------
 --! @brief CONVOLUTION COMPONENT LIBRARY DESCRIPTION                             --
 -----------------------------------------------------------------------------------
@@ -58,7 +58,7 @@ component CONV_INT_ADDER
                           --!     I_PARAM.SHAPE.X.SIZE  = O_PARAM.SHAPE.X.SIZE
                           --!     I_PARAM.SHAPE.Y.SIZE  = O_PARAM.SHAPE.Y.SIZE
                           --!     I_PARAM.ELEM_BITS    <= O_PARAM.ELEM_BITS (桁あふれに注意)
-                          CONV_PIPELINE_PARAM_TYPE := NEW_CONV_PIPELINE_PARAM(8,0,2,1,1,1);
+                          IMAGE_STREAM_PARAM_TYPE := NEW_IMAGE_STREAM_PARAM(8,2,1,1);
         O_PARAM         : --! @brief OUTPUT PIPELINE DATA PARAMETER :
                           --! パイプラインデータ出力ポートのパラメータを指定する.
                           --! * 次の条件を満していなければならない.
@@ -67,7 +67,7 @@ component CONV_INT_ADDER
                           --!     O_PARAM.SHAPE.X.SIZE  = I_PARAM.SHAPE.X.SIZE
                           --!     O_PARAM.SHAPE.Y.SIZE >= I_PARAM.SHAPE.Y.SIZE
                           --!     O_PARAM.ELEM_BITS    >= I_PARAM.ELEM_BITS (桁あふれに注意)
-                          CONV_PIPELINE_PARAM_TYPE := NEW_CONV_PIPELINE_PARAM(8,0,1,1,1,1);
+                          IMAGE_STREAM_PARAM_TYPE := NEW_IMAGE_STREAM_PARAM(8,1,1,1);
         QUEUE_SIZE      : --! パイプラインレジスタの深さを指定する.
                           --! * QUEUE_SIZE=0 の場合は出力にキューが挿入されずダイレ
                           --!   クトに出力される.
@@ -140,7 +140,7 @@ component CONV_INT_ADDER_TREE
                           --!     I_PARAM.SHAPE.X.SIZE  = O_PARAM.SHAPE.X.SIZE
                           --!     I_PARAM.SHAPE.Y.SIZE  = O_PARAM.SHAPE.Y.SIZE
                           --!     I_PARAM.ELEM_BITS    <= O_PARAM.ELEM_BITS (桁あふれに注意)
-                          CONV_PIPELINE_PARAM_TYPE := NEW_CONV_PIPELINE_PARAM(8,0,2,1,1,1);
+                          IMAGE_STREAM_PARAM_TYPE := NEW_IMAGE_STREAM_PARAM(8,2,1,1);
         O_PARAM         : --! @brief OUTPUT PIPELINE DATA PARAMETER :
                           --! パイプラインデータ出力ポートのパラメータを指定する.
                           --! * 次の条件を満していなければならない.
@@ -149,7 +149,7 @@ component CONV_INT_ADDER_TREE
                           --!     O_PARAM.SHAPE.X.SIZE  = I_PARAM.SHAPE.X.SIZE
                           --!     O_PARAM.SHAPE.Y.SIZE >= I_PARAM.SHAPE.Y.SIZE
                           --!     O_PARAM.ELEM_BITS    >= I_PARAM.ELEM_BITS (桁あふれに注意)
-                          CONV_PIPELINE_PARAM_TYPE := NEW_CONV_PIPELINE_PARAM(8,0,1,1,1,1);
+                          IMAGE_STREAM_PARAM_TYPE := NEW_IMAGE_STREAM_PARAM(8,1,1,1);
         QUEUE_SIZE      : --! パイプラインレジスタの深さを指定する.
                           --! * QUEUE_SIZE=0 の場合は出力にキューが挿入されずダイレ
                           --!   クトに出力される.
@@ -220,7 +220,7 @@ component CONV_INT_ACCUMULATOR
                           --!     I_PARAM.SHAPE = O_PARAM.SHAPE
                           --!     I_PARAM.SHAPE = B_PARAM.SHAPE
                           --!     I_PARAM.ELEM_BITS <= O_PARAM.ELEM_BITS (桁あふれに注意)
-                          CONV_PIPELINE_PARAM_TYPE := NEW_CONV_PIPELINE_PARAM(8,0,1,1,1,1);
+                          IMAGE_STREAM_PARAM_TYPE := NEW_IMAGE_STREAM_PARAM(8,1,1,1);
         O_PARAM         : --! @brief OUTPUT PIPELINE DATA PARAMETER :
                           --! パイプラインデータ出力ポートのパラメータを指定する.
                           --! * 次の条件を満していなければならない.
@@ -228,14 +228,14 @@ component CONV_INT_ACCUMULATOR
                           --!     O_PARAM.SHAPE = B_PARAM.SHAPE
                           --!     O_PARAM.ELEM_BITS >= I_PARAM.ELEM_BITS (桁あふれに注意)
                           --!     O_PARAM.ELEM_BITS >= B_PARAM.ELEM_BITS (桁あふれに注意)
-                          CONV_PIPELINE_PARAM_TYPE := NEW_CONV_PIPELINE_PARAM(8,0,1,1,1,1);
+                          IMAGE_STREAM_PARAM_TYPE := NEW_IMAGE_STREAM_PARAM(8,1,1,1);
         B_PARAM         : --! @brief INPUT PIPELINE BIAS DATA PARAMETER :
                           --! バイアスデータ入力ポートのパラメータを指定する.
                           --! * 次の条件を満していなければならない.
                           --!     B_PARAM.SHAPE = I_PARAM.SHAPE
                           --!     B_PARAM.SHAPE = O_PARAM.SHAPE
                           --!     B_PARAM.ELEM_BITS <= O_PARAM.ELEM_BITS (桁あふれに注意)
-                          CONV_PIPELINE_PARAM_TYPE := NEW_CONV_PIPELINE_PARAM(8,0,1,1,1,1);
+                          IMAGE_STREAM_PARAM_TYPE := NEW_IMAGE_STREAM_PARAM(8,1,1,1);
         QUEUE_SIZE      : --! パイプラインレジスタの深さを指定する.
                           --! * QUEUE_SIZE=0 の場合は出力にキューが挿入されずダイレ
                           --!   クトに出力される.
@@ -278,7 +278,7 @@ component CONV_INT_ACCUMULATOR
                           out std_logic;
         B_DATA          : --! @brief INPUT CONVOLUTION PIPELINE BIAS DATA :
                           --! バイアスデータ入力.
-                          in  std_logic_vector(I_PARAM.DATA.SIZE-1 downto 0);
+                          in  std_logic_vector(B_PARAM.DATA.SIZE-1 downto 0);
         B_VALID         : --! @brief INPUT CONVOLUTION PIPELINE BIAS DATA VALID :
                           --! 入力バイアスデータ有効信号.
                           --! * B_DATAが有効であることを示す.
@@ -321,21 +321,21 @@ component CONV_INT_MULTIPLIER
                           --!     I_PARAM.SHAPE = O_PARAM.SHAPE
                           --!     I_PARAM.SHAPE = W_PARAM.SHAPE
                           --!     I_PARAM.ELEM_BITS+W_PARAM.ELEM_BITS <= O_PARAM.ELEM_BITS (桁あふれに注意)
-                          CONV_PIPELINE_PARAM_TYPE := NEW_CONV_PIPELINE_PARAM(8,0,1,1,1,1);
+                          IMAGE_STREAM_PARAM_TYPE := NEW_IMAGE_STREAM_PARAM(8,1,1,1);
         W_PARAM         : --! @brief INPUT  CONVOLUTION PIPELINE WEIGHT DATA PARAMETER :
                           --! パイプラインデータ入力ポートのパラメータを指定する.
                           --! * 次の条件を満していなければならない.
                           --!     W_PARAM.SHAPE = I_PARAM.SHAPE
                           --!     W_PARAM.SHAPE = O_PARAM.SHAPE
                           --!     W_PARAM.ELEM_BITS+I_PARAM.ELEM_BITS <= O_PARAM.ELEM_BITS (桁あふれに注意)
-                          CONV_PIPELINE_PARAM_TYPE := NEW_CONV_PIPELINE_PARAM(8,0,1,1,1,1);
+                          IMAGE_STREAM_PARAM_TYPE := NEW_IMAGE_STREAM_PARAM(8,1,1,1);
         O_PARAM         : --! @brief OUTPUT CONVOLUTION PIPELINE DATA PARAMETER :
                           --! パイプラインデータ出力ポートのパラメータを指定する.
                           --! * 次の条件を満していなければならない.
                           --!     O_PARAM.SHAPE = I_PARAM.SHAPE
                           --!     O_PARAM.SHAPE = W_PARAM.SHAPE
                           --!     O_PARAM.ELEM_BITS >= I_PARAM.ELEM_BITS+W_PARAM.ELEM_BITS (桁あふれに注意)
-                          CONV_PIPELINE_PARAM_TYPE := NEW_CONV_PIPELINE_PARAM(16,0,1,1,1,1);
+                          IMAGE_STREAM_PARAM_TYPE := NEW_IMAGE_STREAM_PARAM(8,1,1,1);
         QUEUE_SIZE      : --! パイプラインレジスタの深さを指定する.
                           --! * QUEUE_SIZE=0 の場合は出力にキューが挿入されずダイレ
                           --!   クトに出力される.

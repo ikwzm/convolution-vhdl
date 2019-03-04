@@ -1,8 +1,8 @@
 -----------------------------------------------------------------------------------
 --!     @file    conv_int_multiplier.vhd
 --!     @brief   Convolution Integer Multiplier Module
---!     @version 0.1.0
---!     @date    2019/2/4
+--!     @version 0.2.0
+--!     @date    2019/2/27
 --!     @author  Ichiro Kawazome <ichiro_k@ca2.so-net.ne.jp>
 -----------------------------------------------------------------------------------
 --
@@ -36,8 +36,8 @@
 -----------------------------------------------------------------------------------
 library ieee;
 use     ieee.std_logic_1164.all;
-library CONVOLUTION;
-use     CONVOLUTION.CONV_TYPES.all;
+library PIPEWORK;
+use     PIPEWORK.IMAGE_TYPES.all;
 -----------------------------------------------------------------------------------
 --! @brief Convolution Integer Multiplier Module
 -----------------------------------------------------------------------------------
@@ -49,21 +49,21 @@ entity  CONV_INT_MULTIPLIER is
                           --!     I_PARAM.SHAPE = O_PARAM.SHAPE
                           --!     I_PARAM.SHAPE = W_PARAM.SHAPE
                           --!     I_PARAM.ELEM_BITS+W_PARAM.ELEM_BITS <= O_PARAM.ELEM_BITS (桁あふれに注意)
-                          CONV_PIPELINE_PARAM_TYPE := NEW_CONV_PIPELINE_PARAM(8,0,1,1,1,1);
+                          IMAGE_STREAM_PARAM_TYPE := NEW_IMAGE_STREAM_PARAM(8,1,1,1);
         W_PARAM         : --! @brief INPUT  CONVOLUTION PIPELINE WEIGHT DATA PARAMETER :
                           --! パイプラインデータ入力ポートのパラメータを指定する.
                           --! * 次の条件を満していなければならない.
                           --!     W_PARAM.SHAPE = I_PARAM.SHAPE
                           --!     W_PARAM.SHAPE = O_PARAM.SHAPE
                           --!     W_PARAM.ELEM_BITS+I_PARAM.ELEM_BITS <= O_PARAM.ELEM_BITS (桁あふれに注意)
-                          CONV_PIPELINE_PARAM_TYPE := NEW_CONV_PIPELINE_PARAM(8,0,1,1,1,1);
+                          IMAGE_STREAM_PARAM_TYPE := NEW_IMAGE_STREAM_PARAM(8,1,1,1);
         O_PARAM         : --! @brief OUTPUT CONVOLUTION PIPELINE DATA PARAMETER :
                           --! パイプラインデータ出力ポートのパラメータを指定する.
                           --! * 次の条件を満していなければならない.
                           --!     O_PARAM.SHAPE = I_PARAM.SHAPE
                           --!     O_PARAM.SHAPE = W_PARAM.SHAPE
                           --!     O_PARAM.ELEM_BITS >= I_PARAM.ELEM_BITS+W_PARAM.ELEM_BITS (桁あふれに注意)
-                          CONV_PIPELINE_PARAM_TYPE := NEW_CONV_PIPELINE_PARAM(16,0,1,1,1,1);
+                          IMAGE_STREAM_PARAM_TYPE := NEW_IMAGE_STREAM_PARAM(8,1,1,1);
         QUEUE_SIZE      : --! パイプラインレジスタの深さを指定する.
                           --! * QUEUE_SIZE=0 の場合は出力にキューが挿入されずダイレ
                           --!   クトに出力される.
@@ -144,9 +144,8 @@ end CONV_INT_MULTIPLIER;
 library ieee;
 use     ieee.std_logic_1164.all;
 use     ieee.numeric_std.all;
-library CONVOLUTION;
-use     CONVOLUTION.CONV_TYPES.all;
 library PIPEWORK;
+use     PIPEWORK.IMAGE_TYPES.all;
 use     PIPEWORK.COMPONENTS.PIPELINE_REGISTER;
 architecture RTL of CONV_INT_MULTIPLIER is
     -------------------------------------------------------------------------------
@@ -158,7 +157,7 @@ architecture RTL of CONV_INT_MULTIPLIER is
                                        0 to I_PARAM.SHAPE.D.SIZE-1,
                                        0 to I_PARAM.SHAPE.C.SIZE-1) of I_ELEM_TYPE;
     signal    i_element       :  I_ELEM_VECTOR;
-    signal    i_c_valid       :  std_logic_vector(I_PARAM.SHAPE.C.SIZE-1 downto 0);
+    signal    i_c_atrb        :  IMAGE_STREAM_ATRB_VECTOR(0 to I_PARAM.SHAPE.C.SIZE-1);
     -------------------------------------------------------------------------------
     --
     -------------------------------------------------------------------------------
@@ -168,7 +167,7 @@ architecture RTL of CONV_INT_MULTIPLIER is
                                        0 to W_PARAM.SHAPE.D.SIZE-1,
                                        0 to W_PARAM.SHAPE.C.SIZE-1) of W_ELEM_TYPE;
     signal    w_element       :  W_ELEM_VECTOR;
-    signal    w_c_valid       :  std_logic_vector(W_PARAM.SHAPE.C.SIZE-1 downto 0);
+    signal    w_c_atrb        :  IMAGE_STREAM_ATRB_VECTOR(0 to W_PARAM.SHAPE.C.SIZE-1);
     -------------------------------------------------------------------------------
     --
     -------------------------------------------------------------------------------
@@ -194,12 +193,12 @@ begin
         for x in 0 to I_PARAM.SHAPE.X.SIZE-1 loop
         for d in 0 to I_PARAM.SHAPE.D.SIZE-1 loop
         for c in 0 to I_PARAM.SHAPE.C.SIZE-1 loop
-            i_element(y,x,d,c) <= GET_ELEMENT_FROM_DATA(I_PARAM, c, d, x, y, I_DATA);
+            i_element(y,x,d,c) <= GET_ELEMENT_FROM_IMAGE_STREAM_DATA(I_PARAM, c, d, x, y, I_DATA);
         end loop;
         end loop;
         end loop;
         end loop;
-        i_c_valid <= I_DATA(I_PARAM.DATA.ATRB_FIELD.C.VALID.HI downto I_PARAM.DATA.ATRB_FIELD.C.VALID.LO);
+        i_c_atrb <= GET_ATRB_C_VECTOR_FROM_IMAGE_STREAM_DATA(I_PARAM, I_DATA);
     end process;
     -------------------------------------------------------------------------------
     -- w_element : 入力パイプライン重みデータを要素ごとの配列に変換
@@ -210,17 +209,17 @@ begin
         for x in 0 to W_PARAM.SHAPE.X.SIZE-1 loop
         for d in 0 to W_PARAM.SHAPE.D.SIZE-1 loop
         for c in 0 to W_PARAM.SHAPE.C.SIZE-1 loop
-            w_element(y,x,d,c) <= GET_ELEMENT_FROM_DATA(W_PARAM, c, d, x, y, W_DATA);
+            w_element(y,x,d,c) <= GET_ELEMENT_FROM_IMAGE_STREAM_DATA(W_PARAM, c, d, x, y, W_DATA);
         end loop;
         end loop;
         end loop;
         end loop;
-        w_c_valid <= W_DATA(W_PARAM.DATA.ATRB_FIELD.C.VALID.HI downto W_PARAM.DATA.ATRB_FIELD.C.VALID.LO);
+        w_c_atrb <= GET_ATRB_C_VECTOR_FROM_IMAGE_STREAM_DATA(W_PARAM, W_DATA);
     end process;
     -------------------------------------------------------------------------------
     -- o_element : 乗算結果
     -------------------------------------------------------------------------------
-    process(i_element, i_c_valid, w_element, w_c_valid)
+    process(i_element, i_c_atrb, w_element, w_c_atrb)
         variable i_elem  :  I_ELEM_TYPE;
         variable w_elem  :  W_ELEM_TYPE;
     begin
@@ -228,12 +227,12 @@ begin
         for x in 0 to O_PARAM.SHAPE.X.SIZE-1 loop
         for d in 0 to O_PARAM.SHAPE.D.SIZE-1 loop
         for c in 0 to O_PARAM.SHAPE.C.SIZE-1 loop
-            if (i_c_valid(c) = '1') then
+            if (i_c_atrb(c).VALID = TRUE) then
                 i_elem := i_element(y,x,d,c);
             else
                 i_elem := (others => '0');
             end if;
-            if (w_c_valid(c) = '1') then
+            if (w_c_atrb(c).VALID = TRUE) then
                 w_elem := w_element(y,x,d,c);
             else
                 w_elem := (others => '0');
@@ -260,14 +259,16 @@ begin
         for x in 0 to O_PARAM.SHAPE.X.SIZE-1 loop
         for d in 0 to O_PARAM.SHAPE.D.SIZE-1 loop
         for c in 0 to O_PARAM.SHAPE.C.SIZE-1 loop
-            SET_ELEMENT_TO_DATA(O_PARAM, c, d, x, y, o_element(y,x,d,c), data);
+            SET_ELEMENT_TO_IMAGE_STREAM_DATA(O_PARAM, c, d, x, y, o_element(y,x,d,c), data);
         end loop;        
         end loop;        
         end loop;        
         end loop;
-        data(O_PARAM.DATA.ATRB_FIELD.HI downto O_PARAM.DATA.ATRB_FIELD.LO) := I_DATA(I_PARAM.DATA.ATRB_FIELD.HI downto I_PARAM.DATA.ATRB_FIELD.LO);
-        if (O_PARAM.INFO_BITS > 0) then
-            data(O_PARAM.DATA.INFO_FIELD.HI downto O_PARAM.DATA.INFO_FIELD.LO) := I_DATA(I_PARAM.DATA.INFO_FIELD.HI   downto I_PARAM.DATA.INFO_FIELD.LO  );
+        if (O_PARAM.DATA.ATRB_FIELD.SIZE > 0) then
+            data(O_PARAM.DATA.ATRB_FIELD.HI downto O_PARAM.DATA.ATRB_FIELD.LO) := I_DATA(I_PARAM.DATA.ATRB_FIELD.HI downto I_PARAM.DATA.ATRB_FIELD.LO);
+        end if;
+        if (O_PARAM.DATA.INFO_FIELD.SIZE > 0) then
+            data(O_PARAM.DATA.INFO_FIELD.HI downto O_PARAM.DATA.INFO_FIELD.LO) := I_DATA(I_PARAM.DATA.INFO_FIELD.HI downto I_PARAM.DATA.INFO_FIELD.LO);
         end if;
         q_data <= data;
     end process;

@@ -175,12 +175,16 @@ architecture RTL of CONV_INT_CORE is
     signal    a_data          :  std_logic_vector(PARAM.A_STREAM.DATA.SIZE-1 downto 0);
     signal    a_valid         :  std_logic;
     signal    a_ready         :  std_logic;
+    signal    a_atrb_x        :  IMAGE_STREAM_ATRB_VECTOR(0 to PARAM.A_STREAM.SHAPE.X.SIZE-1);
+    signal    a_atrb_y        :  IMAGE_STREAM_ATRB_VECTOR(0 to PARAM.A_STREAM.SHAPE.Y.SIZE-1);
     -------------------------------------------------------------------------------
     --
     -------------------------------------------------------------------------------
     signal    mul_i_data      :  std_logic_vector(PARAM.A_PIPELINE.DATA.SIZE-1 downto 0);
     signal    mul_i_valid     :  std_logic;
     signal    mul_i_ready     :  std_logic;
+    signal    mul_i_atrb_x    :  IMAGE_STREAM_ATRB_VECTOR(0 to PARAM.A_PIPELINE.SHAPE.X.SIZE-1);
+    signal    mul_i_atrb_y    :  IMAGE_STREAM_ATRB_VECTOR(0 to PARAM.A_PIPELINE.SHAPE.Y.SIZE-1);
     -------------------------------------------------------------------------------
     --
     -------------------------------------------------------------------------------
@@ -235,7 +239,9 @@ begin
             O_DATA          => a_data          , -- Out :
             O_VALID         => a_valid         , -- Out :
             O_READY         => a_ready           -- In  :
-        );                                       -- 
+        );                                       --
+    a_atrb_x <= GET_ATRB_X_VECTOR_FROM_IMAGE_STREAM_DATA(PARAM.A_STREAM, a_data);
+    a_atrb_y <= GET_ATRB_Y_VECTOR_FROM_IMAGE_STREAM_DATA(PARAM.A_STREAM, a_data);
     -------------------------------------------------------------------------------
     -- 
     -------------------------------------------------------------------------------
@@ -248,6 +254,8 @@ begin
                    );
     mul_i_valid <= a_valid;
     a_ready     <= mul_i_ready;
+    mul_i_atrb_x <= GET_ATRB_X_VECTOR_FROM_IMAGE_STREAM_DATA(PARAM.A_PIPELINE, mul_i_data);
+    mul_i_atrb_y <= GET_ATRB_Y_VECTOR_FROM_IMAGE_STREAM_DATA(PARAM.A_PIPELINE, mul_i_data);
     -------------------------------------------------------------------------------
     -- 
     -------------------------------------------------------------------------------

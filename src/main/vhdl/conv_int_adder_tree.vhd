@@ -1,8 +1,8 @@
 -----------------------------------------------------------------------------------
 --!     @file    conv_int_adder_tree.vhd
 --!     @brief   Convolution Integer Adder Tree Module
---!     @version 0.1.0
---!     @date    2019/2/4
+--!     @version 0.2.0
+--!     @date    2019/2/27
 --!     @author  Ichiro Kawazome <ichiro_k@ca2.so-net.ne.jp>
 -----------------------------------------------------------------------------------
 --
@@ -36,8 +36,8 @@
 -----------------------------------------------------------------------------------
 library ieee;
 use     ieee.std_logic_1164.all;
-library CONVOLUTION;
-use     CONVOLUTION.CONV_TYPES.all;
+library PIPEWORK;
+use     PIPEWORK.IMAGE_TYPES.all;
 -----------------------------------------------------------------------------------
 --! @brief Convolution Integer Adder Tree
 -----------------------------------------------------------------------------------
@@ -51,7 +51,7 @@ entity  CONV_INT_ADDER_TREE is
                           --!     I_PARAM.SHAPE.X.SIZE  = O_PARAM.SHAPE.X.SIZE
                           --!     I_PARAM.SHAPE.Y.SIZE  = O_PARAM.SHAPE.Y.SIZE
                           --!     I_PARAM.ELEM_BITS    <= O_PARAM.ELEM_BITS (桁あふれに注意)
-                          CONV_PIPELINE_PARAM_TYPE := NEW_CONV_PIPELINE_PARAM(8,0,2,1,1,1);
+                          IMAGE_STREAM_PARAM_TYPE := NEW_IMAGE_STREAM_PARAM(8,2,1,1);
         O_PARAM         : --! @brief OUTPUT PIPELINE DATA PARAMETER :
                           --! パイプラインデータ出力ポートのパラメータを指定する.
                           --! * 次の条件を満していなければならない.
@@ -60,7 +60,7 @@ entity  CONV_INT_ADDER_TREE is
                           --!     O_PARAM.SHAPE.X.SIZE  = I_PARAM.SHAPE.X.SIZE
                           --!     O_PARAM.SHAPE.Y.SIZE >= I_PARAM.SHAPE.Y.SIZE
                           --!     O_PARAM.ELEM_BITS    >= I_PARAM.ELEM_BITS (桁あふれに注意)
-                          CONV_PIPELINE_PARAM_TYPE := NEW_CONV_PIPELINE_PARAM(8,0,1,1,1,1);
+                          IMAGE_STREAM_PARAM_TYPE := NEW_IMAGE_STREAM_PARAM(8,1,1,1);
         QUEUE_SIZE      : --! パイプラインレジスタの深さを指定する.
                           --! * QUEUE_SIZE=0 の場合は出力にキューが挿入されずダイレ
                           --!   クトに出力される.
@@ -126,9 +126,8 @@ end CONV_INT_ADDER_TREE;
 library ieee;
 use     ieee.std_logic_1164.all;
 use     ieee.numeric_std.all;
-library CONVOLUTION;
-use     CONVOLUTION.CONV_TYPES.all;
 library PIPEWORK;
+use     PIPEWORK.IMAGE_TYPES.all;
 use     PIPEWORK.COMPONENTS.PIPELINE_REGISTER;
 architecture RTL of CONV_INT_ADDER_TREE is
     -------------------------------------------------------------------------------
@@ -136,8 +135,8 @@ architecture RTL of CONV_INT_ADDER_TREE is
     -------------------------------------------------------------------------------
     component CONV_INT_ADDER
         generic (
-            I_PARAM     : CONV_PIPELINE_PARAM_TYPE := NEW_CONV_PIPELINE_PARAM(8,0,2,1,1,1);
-            O_PARAM     : CONV_PIPELINE_PARAM_TYPE := NEW_CONV_PIPELINE_PARAM(8,0,1,1,1,1);
+            I_PARAM     : IMAGE_STREAM_PARAM_TYPE := NEW_IMAGE_STREAM_PARAM(8,2,1,1);
+            O_PARAM     : IMAGE_STREAM_PARAM_TYPE := NEW_IMAGE_STREAM_PARAM(8,1,1,1);
             QUEUE_SIZE  : integer := 2;
             SIGN        : boolean := TRUE
         );
@@ -158,8 +157,8 @@ architecture RTL of CONV_INT_ADDER_TREE is
     -------------------------------------------------------------------------------
     component CONV_INT_ADDER_TREE
         generic (
-            I_PARAM     : CONV_PIPELINE_PARAM_TYPE := NEW_CONV_PIPELINE_PARAM(8,0,2,1,1,1);
-            O_PARAM     : CONV_PIPELINE_PARAM_TYPE := NEW_CONV_PIPELINE_PARAM(8,0,1,1,1,1);
+            I_PARAM     : IMAGE_STREAM_PARAM_TYPE := NEW_IMAGE_STREAM_PARAM(8,2,1,1);
+            O_PARAM     : IMAGE_STREAM_PARAM_TYPE := NEW_IMAGE_STREAM_PARAM(8,1,1,1);
             QUEUE_SIZE  : integer := 2;
             SIGN        : boolean := TRUE
         );
@@ -192,20 +191,22 @@ begin
             for x in 0 to O_PARAM.SHAPE.X.SIZE-1 loop
             for d in 0 to O_PARAM.SHAPE.D.SIZE-1 loop
             for c in 0 to O_PARAM.SHAPE.C.SIZE-1 loop
-                i_elem := GET_ELEMENT_FROM_DATA(I_PARAM, c, d, x, y, I_DATA);
+                i_elem := GET_ELEMENT_FROM_IMAGE_STREAM_DATA(I_PARAM, c, d, x, y, I_DATA);
                 if (SIGN) then
                     o_elem := std_logic_vector(resize(to_01(  signed(i_elem)), O_PARAM.ELEM_BITS));
                 else
                     o_elem := std_logic_vector(resize(to_01(unsigned(i_elem)), O_PARAM.ELEM_BITS));
                 end if;
-                SET_ELEMENT_TO_DATA(O_PARAM, c, d, x, y, o_elem, data);
+                SET_ELEMENT_TO_IMAGE_STREAM_DATA(O_PARAM, c, d, x, y, o_elem, data);
             end loop;
             end loop;
             end loop;
             end loop;
-            data(O_PARAM.DATA.ATRB_FIELD.HI downto O_PARAM.DATA.ATRB_FIELD.LO) := I_DATA(I_PARAM.DATA.ATRB_FIELD.HI downto I_PARAM.DATA.ATRB_FIELD.LO);
+            if (O_PARAM.DATA.ATRB_FIELD.SIZE > 0) then
+                data(O_PARAM.DATA.ATRB_FIELD.HI downto O_PARAM.DATA.ATRB_FIELD.LO) := I_DATA(I_PARAM.DATA.ATRB_FIELD.HI downto I_PARAM.DATA.ATRB_FIELD.LO);
+            end if;
             if (O_PARAM.INFO_BITS > 0) then
-                data(O_PARAM.DATA.INFO_FIELD.HI downto O_PARAM.DATA.INFO_FIELD.LO) := I_DATA(I_PARAM.DATA.INFO_FIELD.HI   downto I_PARAM.DATA.INFO_FIELD.LO  );
+                data(O_PARAM.DATA.INFO_FIELD.HI downto O_PARAM.DATA.INFO_FIELD.LO) := I_DATA(I_PARAM.DATA.INFO_FIELD.HI downto I_PARAM.DATA.INFO_FIELD.LO);
             end if;
             O_DATA <= data;
         end process;
@@ -218,14 +219,17 @@ begin
     TREE: if (I_PARAM.SHAPE.C.SIZE > O_PARAM.SHAPE.C.SIZE) generate
         constant  T_ELEM_BITS     :  integer := I_PARAM.ELEM_BITS+1;
         constant  T_SHAPE_C_SIZE  :  integer := (I_PARAM.SHAPE.C.SIZE + 1) / 2;
-        constant  T_PARAM         :  CONV_PIPELINE_PARAM_TYPE 
-                                  := NEW_CONV_PIPELINE_PARAM(
+        constant  T_PARAM         :  IMAGE_STREAM_PARAM_TYPE 
+                                  := NEW_IMAGE_STREAM_PARAM(
                                          ELEM_BITS => T_ELEM_BITS         ,
                                          INFO_BITS => I_PARAM.INFO_BITS   ,
-                                         C         => T_SHAPE_C_SIZE      ,
-                                         D         => I_PARAM.SHAPE.D.SIZE,
-                                         X         => I_PARAM.SHAPE.X.SIZE,
-                                         Y         => I_PARAM.SHAPE.Y.SIZE
+                                         SHAPE     => NEW_IMAGE_SHAPE(
+                                             ELEM_BITS => T_ELEM_BITS     ,
+                                             C         => NEW_IMAGE_SHAPE_SIDE_CONSTANT(T_SHAPE_C_SIZE),
+                                             D         => I_PARAM.SHAPE.D,
+                                             X         => I_PARAM.SHAPE.X,
+                                             Y         => I_PARAM.SHAPE.Y
+                                         )
                                      );
         signal    t_data          :  std_logic_vector(T_PARAM.DATA.SIZE-1 downto 0);
         signal    t_valid         :  std_logic;

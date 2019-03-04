@@ -407,3 +407,51 @@ begin
         wait;
     end process;
 end MODEL;
+-----------------------------------------------------------------------------------
+--
+-----------------------------------------------------------------------------------
+library ieee;
+use     ieee.std_logic_1164.all;
+library PipeWork;
+use     PipeWork.IMAGE_TYPES.all;
+library Convolution;
+use     Convolution.CONV_TYPES.all;
+entity  CONV_INT_CORE_TEST_BENCH_3x3_8_8x12x12_4x10x10_1111 is
+    generic (
+        NAME            : STRING                          := "test_3x3_8_8x12x12_4x10x10_1111";
+        SCENARIO_FILE   : STRING                          := "test_3x3_8_8x12x12_4x10x10_1111.snr";
+        SIGN            : boolean                         := FALSE;
+        KERNEL_SIZE     : CONV_KERNEL_SIZE_TYPE           := CONV_KERNEL_SIZE_3x3;
+        STRIDE          : IMAGE_STREAM_STRIDE_PARAM_TYPE  := NEW_IMAGE_STREAM_STRIDE_PARAM(1,1);
+        I_STREAM        : IMAGE_STREAM_PARAM_TYPE         := NEW_IMAGE_STREAM_PARAM(8,8,1,1);
+        I_SHAPE_C       : IMAGE_SHAPE_SIDE_TYPE           := NEW_IMAGE_SHAPE_SIDE_CONSTANT(8);
+        I_SHAPE_X       : IMAGE_SHAPE_SIDE_TYPE           := NEW_IMAGE_SHAPE_SIDE_CONSTANT(12);
+        I_SHAPE_Y       : IMAGE_SHAPE_SIDE_TYPE           := NEW_IMAGE_SHAPE_SIDE_CONSTANT(12);
+        O_SHAPE_C       : IMAGE_SHAPE_SIDE_TYPE           := NEW_IMAGE_SHAPE_SIDE_CONSTANT(4);
+        C_UNROLL        : integer                         := 1;
+        D_UNROLL        : integer                         := 1;
+        X_UNROLL        : integer                         := 1;
+        Y_UNROLL        : integer                         := 1;
+        FINISH_ABORT    : boolean                         := FALSE
+    );
+end     CONV_INT_CORE_TEST_BENCH_3x3_8_8x12x12_4x10x10_1111;
+architecture MODEL of CONV_INT_CORE_TEST_BENCH_3x3_8_8x12x12_4x10x10_1111 is
+begin
+    TB: entity WORK.CONV_INT_CORE_TEST_BENCH generic map (
+        NAME            => NAME            , 
+        SCENARIO_FILE   => SCENARIO_FILE   , 
+        SIGN            => SIGN            , 
+        KERNEL_SIZE     => KERNEL_SIZE     , 
+        STRIDE          => STRIDE          , 
+        I_STREAM        => I_STREAM        , 
+        I_SHAPE_C       => I_SHAPE_C       , 
+        I_SHAPE_X       => I_SHAPE_X       , 
+        I_SHAPE_Y       => I_SHAPE_Y       , 
+        O_SHAPE_C       => O_SHAPE_C       , 
+        C_UNROLL        => C_UNROLL        , 
+        D_UNROLL        => D_UNROLL        , 
+        X_UNROLL        => X_UNROLL        , 
+        Y_UNROLL        => Y_UNROLL        , 
+        FINISH_ABORT    => FINISH_ABORT   
+    );
+end MODEL;
