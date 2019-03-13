@@ -2,7 +2,7 @@
 --!     @file    conv_components.vhd                                             --
 --!     @brief   CONVOLUTION COMPONENT LIBRARY DESCRIPTION                       --
 --!     @version 0.1.0                                                           --
---!     @date    2019/03/04                                                      --
+--!     @date    2019/03/11                                                      --
 --!     @author  Ichiro Kawazome <ichiro_k@ca2.so-net.ne.jp>                     --
 -----------------------------------------------------------------------------------
 -----------------------------------------------------------------------------------
@@ -521,6 +521,248 @@ component CONV_INT_CORE
                           --! 出力イメージデータレディ信号.
                           --! * O_VALID='1'and O_READY='1'でイメージデータがキュー
                           --!   から取り除かれる.
+                          in  std_logic
+    );
+end component;
+-----------------------------------------------------------------------------------
+--! @brief CONV_PARAMETER_BUFFER_WRITER                                          --
+-----------------------------------------------------------------------------------
+component CONV_PARAMETER_BUFFER_WRITER
+    generic (
+        PARAM           : --! @brief OUTPUT STREAM PARAMETER :
+                          --! 出力側のストリームのパラメータを指定する.
+                          IMAGE_STREAM_PARAM_TYPE := NEW_IMAGE_STREAM_PARAM(8,1,1,1);
+        SHAPE           : --! @brief PARAMETER SHAPE :
+                          --! ウェイトデータの形(SHAPE)を指定する.
+                          IMAGE_SHAPE_TYPE := NEW_IMAGE_SHAPE_CONSTANT(8,1,1,1,1);
+        BANK_SIZE       : --! バッファメモリのバンクの数を指定する.
+                          --! * BANK_SIZE * BUF_DATA_BITS =
+                          --!   PARAM.ELEM_BITS *
+                          --!   PARAM.SHAPE.C.SIZE *
+                          --!   PARAM.SHAPE.D.SIZE *
+                          --!   PARAM.SHAPE.X.SIZE *
+                          --!   PARAM.SHAPE.Y.SIZE でなければならない。
+                          integer := 8;
+        BUF_ADDR_BITS   : --! バッファメモリのアドレスのビット幅を指定する.
+                          integer := 8;
+        BUF_DATA_BITS   : --! バッファメモリのデータのビット幅を指定する.
+                          integer := 8
+    );
+    port (
+    -------------------------------------------------------------------------------
+    -- クロック&リセット信号
+    -------------------------------------------------------------------------------
+        CLK             : --! @brief CLOCK :
+                          --! クロック信号
+                          in  std_logic; 
+        RST             : --! @brief ASYNCRONOUSE RESET :
+                          --! 非同期リセット信号.アクティブハイ.
+                          in  std_logic;
+        CLR             : --! @brief SYNCRONOUSE RESET :
+                          --! 同期リセット信号.アクティブハイ.
+                          in  std_logic;
+    -------------------------------------------------------------------------------
+    -- 制御 I/F
+    -------------------------------------------------------------------------------
+        REQ_VALID       : --! @brief REQUEST VALID :
+                          in  std_logic;
+        REQ_READY       : --! @brief REQUEST READY :
+                          out std_logic;
+        C_SIZE          : --! @brief SHAPE C SIZE :
+                          in  integer range 0 to SHAPE.C.MAX_SIZE := SHAPE.C.SIZE;
+        D_SIZE          : --! @brief SHAPE D SIZE :
+                          in  integer range 0 to SHAPE.D.MAX_SIZE := SHAPE.D.SIZE;
+        RES_VALID       : --! @brief RESPONSE VALID : 
+                          out std_logic;
+        RES_READY       : --! @brief RESPONSE READY : 
+                          in  std_logic := '1';
+        RES_ADDR        : --! @brief RESPONSE BUFFER START ADDRESS :
+                          out std_logic_vector(BUF_ADDR_BITS-1 downto 0);
+        RES_SIZE        : --! @brief RESPONSE SIZE :
+                          out std_logic_vector(BUF_ADDR_BITS   downto 0);
+        BUSY            : --! @brief BUSY
+                          out std_logic;
+    -------------------------------------------------------------------------------
+    -- 入力 I/F
+    -------------------------------------------------------------------------------
+        I_DATA          : --! @brief INPUT PARAMETER DATA :
+                          in  std_logic_vector(PARAM.ELEM_BITS-1 downto 0);
+        I_VALID         : --! @brief INPUT PARAMETER DATA VALID :
+                          in  std_logic;
+        I_READY         : --! @brief INPUT PARAMETER DATA READY :
+                          out std_logic;
+    -------------------------------------------------------------------------------
+    -- バッファメモリ I/F
+    -------------------------------------------------------------------------------
+        BUF_DATA        : --! @brief BUFFER WRITE DATA :
+                          out std_logic_vector(BANK_SIZE*BUF_DATA_BITS-1 downto 0);
+        BUF_ADDR        : --! @brief BUFFER WRITE ADDRESS :
+                          out std_logic_vector(BANK_SIZE*BUF_ADDR_BITS-1 downto 0);
+        BUF_WE          : --! @brief BUFFER WRITE ENABLE :
+                          out std_logic_vector(PARAM.SHAPE.D.SIZE*
+                                               PARAM.SHAPE.Y.SIZE*
+                                               PARAM.SHAPE.X.SIZE*
+                                               PARAM.SHAPE.C.SIZE     -1 downto 0);
+        BUF_PUSH        : --! @brief BUFFER PUSH :
+                          out std_logic;
+        BUF_READY       : --! @brief BUFFER WRITE READY :
+                          in  std_logic := '1'
+    );
+end component;
+-----------------------------------------------------------------------------------
+--! @brief CONV_PARAMETER_BUFFER_READER                                          --
+-----------------------------------------------------------------------------------
+component CONV_PARAMETER_BUFFER_READER
+    generic (
+        PARAM           : --! @brief OUTPUT STREAM PARAMETER :
+                          --! 出力側のストリームのパラメータを指定する.
+                          IMAGE_STREAM_PARAM_TYPE := NEW_IMAGE_STREAM_PARAM(8,1,1,1);
+        SHAPE           : --! @brief OUTPUT IMAGE SHAPE :
+                          --! 出力側のイメージの形(SHAPE)を指定する.
+                          IMAGE_SHAPE_TYPE := NEW_IMAGE_SHAPE_CONSTANT(8,1,1,1,1);
+        BANK_SIZE       : --! バッファメモリのバンクの数を指定する.
+                          --! * BANK_SIZE * BUF_DATA_BITS =
+                          --!   PARAM.ELEM_BITS *
+                          --!   PARAM.SHAPE.C.SIZE *
+                          --!   PARAM.SHAPE.D.SIZE *
+                          --!   PARAM.SHAPE.X.SIZE *
+                          --!   PARAM.SHAPE.Y.SIZE でなければならない。
+                          integer := 8;
+        BUF_ADDR_BITS   : --! バッファメモリのアドレスのビット幅を指定する.
+                          integer := 8;
+        BUF_DATA_BITS   : --! バッファメモリのデータのビット幅を指定する.
+                          integer := 8
+    );
+    port (
+    -------------------------------------------------------------------------------
+    -- クロック&リセット信号
+    -------------------------------------------------------------------------------
+        CLK             : --! @brief CLOCK :
+                          --! クロック信号
+                          in  std_logic; 
+        RST             : --! @brief ASYNCRONOUSE RESET :
+                          --! 非同期リセット信号.アクティブハイ.
+                          in  std_logic;
+        CLR             : --! @brief SYNCRONOUSE RESET :
+                          --! 同期リセット信号.アクティブハイ.
+                          in  std_logic;
+    -------------------------------------------------------------------------------
+    -- 制御 I/F
+    -------------------------------------------------------------------------------
+        REQ_VALID       : --! @brief REQUEST VALID :
+                          in  std_logic;
+        REQ_READY       : --! @brief REQUEST READY :
+                          out std_logic;
+        REQ_ADDR        : --! @brief REQUEST BUFFER START ADDRESS :
+                          in  std_logic_vector(BUF_ADDR_BITS-1 downto 0);
+        C_SIZE          : --! @brief SHAPE C SIZE :
+                          in  integer range 0 to SHAPE.C.MAX_SIZE := SHAPE.C.SIZE;
+        D_SIZE          : --! @brief SHAPE D SIZE :
+                          in  integer range 0 to SHAPE.D.MAX_SIZE := SHAPE.D.SIZE;
+        X_SIZE          : --! @brief SHAPE X SIZE :
+                          in  integer range 0 to SHAPE.X.MAX_SIZE := SHAPE.X.SIZE;
+        Y_SIZE          : --! @brief SHAPE Y SIZE :
+                          in  integer range 0 to SHAPE.Y.MAX_SIZE := SHAPE.Y.SIZE;
+        RES_VALID       : --! @brief RESPONSE VALID : 
+                          out std_logic;
+        RES_READY       : --! @brief RESPONSE READY : 
+                          in  std_logic := '1';
+        BUSY            : --! @brief BUSY
+                          out std_logic;
+    -------------------------------------------------------------------------------
+    -- 出力側 I/F
+    -------------------------------------------------------------------------------
+        O_DATA          : --! @brief OUTPUT PARAMETER DATA :
+                          --! ストリームデータ出力.
+                          out std_logic_vector(PARAM.DATA.SIZE-1 downto 0);
+        O_VALID         : --! @brief OUTPUT PARAMETER DATA VALID :
+                          --! 出力ストリームデータ有効信号.
+                          --! * O_DATAが有効であることを示す.
+                          out std_logic;
+        O_READY         : --! @brief OUTPUT PARAMETER DATA READY :
+                          --! 出力ストリームデータレディ信号.
+                          in  std_logic;
+    -------------------------------------------------------------------------------
+    -- バッファメモリ I/F
+    -------------------------------------------------------------------------------
+        BUF_DATA        : --! @brief BUFFER READ DATA :
+                          in  std_logic_vector(BANK_SIZE*BUF_DATA_BITS-1 downto 0);
+        BUF_ADDR        : --! @brief BUFFER READ ADDRESS :
+                          out std_logic_vector(BANK_SIZE*BUF_ADDR_BITS-1 downto 0)
+    );
+end component;
+-----------------------------------------------------------------------------------
+--! @brief CONV_WEIGHT_BUFFER                                                    --
+-----------------------------------------------------------------------------------
+component CONV_WEIGHT_BUFFER
+    generic (
+        PARAM           : --! @brief OUTPUT STREAM PARAMETER :
+                          --! 出力側のストリームのパラメータを指定する.
+                          IMAGE_STREAM_PARAM_TYPE := NEW_IMAGE_STREAM_PARAM(8,1,1,1);
+        SHAPE           : --! @brief PARAMETER SHAPE :
+                          --! ウェイトデータの形(SHAPE)を指定する.
+                          IMAGE_SHAPE_TYPE := NEW_IMAGE_SHAPE_CONSTANT(8,1,1,1,1);
+        ELEMENT_SIZE    : --! @brief PARAMETER ELEMENT SIZE :
+                          integer := 1024;
+        ID              : --! @brief SDPRAM IDENTIFIER :
+                          --! どのモジュールで使われているかを示す識別番号.
+                          integer := 0 
+    );
+    port (
+    -------------------------------------------------------------------------------
+    -- クロック&リセット信号
+    -------------------------------------------------------------------------------
+        CLK             : --! @brief CLOCK :
+                          --! クロック信号
+                          in  std_logic; 
+        RST             : --! @brief ASYNCRONOUSE RESET :
+                          --! 非同期リセット信号.アクティブハイ.
+                          in  std_logic;
+        CLR             : --! @brief SYNCRONOUSE RESET :
+                          --! 同期リセット信号.アクティブハイ.
+                          in  std_logic;
+    -------------------------------------------------------------------------------
+    -- 制御 I/F
+    -------------------------------------------------------------------------------
+        REQ_VALID       : --! @brief REQUEST VALID :
+                          in  std_logic;
+        REQ_READY       : --! @brief REQUEST READY :
+                          out std_logic;
+        C_SIZE          : --! @brief SHAPE C SIZE :
+                          in  integer range 0 to SHAPE.C.MAX_SIZE := SHAPE.C.SIZE;
+        D_SIZE          : --! @brief SHAPE D SIZE :
+                          in  integer range 0 to SHAPE.D.MAX_SIZE := SHAPE.D.SIZE;
+        X_SIZE          : --! @brief SHAPE X SIZE :
+                          in  integer range 0 to SHAPE.X.MAX_SIZE := SHAPE.X.SIZE;
+        Y_SIZE          : --! @brief SHAPE Y SIZE :
+                          in  integer range 0 to SHAPE.Y.MAX_SIZE := SHAPE.Y.SIZE;
+        RES_VALID       : --! @brief RESPONSE VALID : 
+                          out std_logic;
+        RES_READY       : --! @brief RESPONSE READY : 
+                          in  std_logic := '1';
+        BUSY            : --! @brief BUSY
+                          out std_logic;
+    -------------------------------------------------------------------------------
+    -- 入力 I/F
+    -------------------------------------------------------------------------------
+        I_DATA          : --! @brief INPUT PARAMETER DATA :
+                          in  std_logic_vector(PARAM.ELEM_BITS-1 downto 0);
+        I_VALID         : --! @brief INPUT PARAMETER DATA VALID :
+                          in  std_logic;
+        I_READY         : --! @brief INPUT PARAMETER DATA READY :
+                          out std_logic;
+    -------------------------------------------------------------------------------
+    -- 出力側 I/F
+    -------------------------------------------------------------------------------
+        O_DATA          : --! @brief OUTPUT PARAMETER DATA :
+                          --! ストリームデータ出力.
+                          out std_logic_vector(PARAM.DATA.SIZE-1 downto 0);
+        O_VALID         : --! @brief OUTPUT PARAMETER DATA VALID :
+                          --! 出力ストリームデータ有効信号.
+                          --! * O_DATAが有効であることを示す.
+                          out std_logic;
+        O_READY         : --! @brief OUTPUT PARAMETER DATA READY :
+                          --! 出力ストリームデータレディ信号.
                           in  std_logic
     );
 end component;

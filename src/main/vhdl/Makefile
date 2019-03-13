@@ -1,9 +1,12 @@
 
-ENTITY_FILES = conv_int_adder.vhd       \
-               conv_int_adder_tree.vhd  \
-               conv_int_accumulator.vhd \
-               conv_int_multiplier.vhd  \
-               conv_int_core.vhd        \
+ENTITY_FILES = conv_int_adder.vhd               \
+               conv_int_adder_tree.vhd          \
+               conv_int_accumulator.vhd         \
+               conv_int_multiplier.vhd          \
+               conv_int_core.vhd                \
+               conv_parameter_buffer_writer.vhd \
+               conv_parameter_buffer_reader.vhd \
+               conv_weight_buffer.vhd           \
                ${ENDLIST}
 
 conv_components.vhd : ${ENTITY_FILES}
