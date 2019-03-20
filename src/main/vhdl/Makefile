@@ -6,7 +6,7 @@ ENTITY_FILES = conv_int_adder.vhd               \
                conv_int_core.vhd                \
                conv_parameter_buffer_writer.vhd \
                conv_parameter_buffer_reader.vhd \
-               conv_weight_buffer.vhd           \
+               conv_parameter_buffer.vhd        \
                ${ENDLIST}
 
 conv_components.vhd : ${ENTITY_FILES}

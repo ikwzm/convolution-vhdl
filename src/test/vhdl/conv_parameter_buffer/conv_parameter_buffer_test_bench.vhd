@@ -1,8 +1,8 @@
 -----------------------------------------------------------------------------------
---!     @file    conv_weight_buffer_test_bench.vhd
---!     @brief   Test Bench for Convolution Weight Buffer Module
---!     @version 0.0.1
---!     @date    2019/3/11
+--!     @file    conv_parameter_buffer_test_bench.vhd
+--!     @brief   Test Bench for Convolution Parameter Buffer Module
+--!     @version 0.2.0
+--!     @date    2019/3/20
 --!     @author  Ichiro Kawazome <ichiro_k@ca2.so-net.ne.jp>
 -----------------------------------------------------------------------------------
 --
@@ -36,7 +36,7 @@
 -----------------------------------------------------------------------------------
 library ieee;
 use     ieee.std_logic_1164.all;
-entity  CONV_WEIGHT_BUFFER_TEST_BENCH is
+entity  CONV_PARAMETER_BUFFER_TEST_BENCH is
     generic (
         NAME            : STRING  := "test";
         SCENARIO_FILE   : STRING  := "test.snr";
@@ -51,7 +51,7 @@ entity  CONV_WEIGHT_BUFFER_TEST_BENCH is
         SHAPE_C         : integer := 1;
         FINISH_ABORT    : boolean := FALSE
     );
-end CONV_WEIGHT_BUFFER_TEST_BENCH;
+end CONV_PARAMETER_BUFFER_TEST_BENCH;
 -----------------------------------------------------------------------------------
 --
 -----------------------------------------------------------------------------------
@@ -74,8 +74,8 @@ use     PIPEWORK.IMAGE_TYPES.all;
 use     PIPEWORK.COMPONENTS.REGISTER_ACCESS_ADAPTER;
 use     PIPEWORK.AXI4_COMPONENTS.AXI4_REGISTER_INTERFACE;
 library Convolution;
-use     Convolution.CONV_COMPONENTS.CONV_WEIGHT_BUFFER;
-architecture MODEL of CONV_WEIGHT_BUFFER_TEST_BENCH is
+use     Convolution.CONV_COMPONENTS.CONV_PARAMETER_BUFFER;
+architecture MODEL of CONV_PARAMETER_BUFFER_TEST_BENCH is
     -------------------------------------------------------------------------------
     -- 各種定数
     -------------------------------------------------------------------------------
@@ -251,7 +251,7 @@ begin
     -------------------------------------------------------------------------------
     -- 
     -------------------------------------------------------------------------------
-    DUT: CONV_WEIGHT_BUFFER                          -- 
+    DUT: CONV_PARAMETER_BUFFER                       -- 
         generic map (                                -- 
             PARAM               => PARAM           , --
             SHAPE               => SHAPE           , --
@@ -762,7 +762,7 @@ end MODEL;
 -----------------------------------------------------------------------------------
 library ieee;
 use     ieee.std_logic_1164.all;
-entity  CONV_WEIGHT_BUFFER_TEST_BENCH_1x1x1x1 is
+entity  CONV_PARAMETER_BUFFER_TEST_BENCH_1x1x1x1 is
     generic (
         NAME            : STRING  := "test_1x1x1x1";
         SCENARIO_FILE   : STRING  := "test_1x1x1x1.snr";
@@ -777,10 +777,10 @@ entity  CONV_WEIGHT_BUFFER_TEST_BENCH_1x1x1x1 is
         SHAPE_C         : integer := 1;
         FINISH_ABORT    : boolean := FALSE
     );
-end CONV_WEIGHT_BUFFER_TEST_BENCH_1x1x1x1;
-architecture MODEL of CONV_WEIGHT_BUFFER_TEST_BENCH_1x1x1x1 is
+end CONV_PARAMETER_BUFFER_TEST_BENCH_1x1x1x1;
+architecture MODEL of CONV_PARAMETER_BUFFER_TEST_BENCH_1x1x1x1 is
 begin
-    TB: entity WORK.CONV_WEIGHT_BUFFER_TEST_BENCH generic map(
+    TB: entity WORK.CONV_PARAMETER_BUFFER_TEST_BENCH generic map(
         NAME            => NAME            , 
         SCENARIO_FILE   => SCENARIO_FILE   , 
         KY_SIZE         => KY_SIZE         , 
@@ -800,7 +800,7 @@ end MODEL;
 -----------------------------------------------------------------------------------
 library ieee;
 use     ieee.std_logic_1164.all;
-entity  CONV_WEIGHT_BUFFER_TEST_BENCH_1x1x1x1_1x1x1x1 is
+entity  CONV_PARAMETER_BUFFER_TEST_BENCH_1x1x1x1_1x1x1x1 is
     generic (
         NAME            : STRING  := "test_1x1x1x1_1x1x1x1";
         SCENARIO_FILE   : STRING  := "test_1x1x1x1_1x1x1x1.snr";
@@ -815,10 +815,10 @@ entity  CONV_WEIGHT_BUFFER_TEST_BENCH_1x1x1x1_1x1x1x1 is
         SHAPE_C         : integer := 1;
         FINISH_ABORT    : boolean := FALSE
     );
-end CONV_WEIGHT_BUFFER_TEST_BENCH_1x1x1x1_1x1x1x1;
-architecture MODEL of CONV_WEIGHT_BUFFER_TEST_BENCH_1x1x1x1_1x1x1x1 is
+end CONV_PARAMETER_BUFFER_TEST_BENCH_1x1x1x1_1x1x1x1;
+architecture MODEL of CONV_PARAMETER_BUFFER_TEST_BENCH_1x1x1x1_1x1x1x1 is
 begin
-    TB: entity WORK.CONV_WEIGHT_BUFFER_TEST_BENCH generic map(
+    TB: entity WORK.CONV_PARAMETER_BUFFER_TEST_BENCH generic map(
         NAME            => NAME            , 
         SCENARIO_FILE   => SCENARIO_FILE   , 
         KY_SIZE         => KY_SIZE         , 
@@ -838,7 +838,7 @@ end MODEL;
 -----------------------------------------------------------------------------------
 library ieee;
 use     ieee.std_logic_1164.all;
-entity  CONV_WEIGHT_BUFFER_TEST_BENCH_1x1x1x4 is
+entity  CONV_PARAMETER_BUFFER_TEST_BENCH_1x1x1x4 is
     generic (
         NAME            : STRING  := "test_1x1x1x4";
         SCENARIO_FILE   : STRING  := "test_1x1x1x4.snr";
@@ -853,10 +853,10 @@ entity  CONV_WEIGHT_BUFFER_TEST_BENCH_1x1x1x4 is
         SHAPE_C         : integer := 1;
         FINISH_ABORT    : boolean := FALSE
     );
-end CONV_WEIGHT_BUFFER_TEST_BENCH_1x1x1x4;
-architecture MODEL of CONV_WEIGHT_BUFFER_TEST_BENCH_1x1x1x4 is
+end CONV_PARAMETER_BUFFER_TEST_BENCH_1x1x1x4;
+architecture MODEL of CONV_PARAMETER_BUFFER_TEST_BENCH_1x1x1x4 is
 begin
-    TB: entity WORK.CONV_WEIGHT_BUFFER_TEST_BENCH generic map(
+    TB: entity WORK.CONV_PARAMETER_BUFFER_TEST_BENCH generic map(
         NAME            => NAME            , 
         SCENARIO_FILE   => SCENARIO_FILE   , 
         KY_SIZE         => KY_SIZE         , 
@@ -876,7 +876,7 @@ end MODEL;
 -----------------------------------------------------------------------------------
 library ieee;
 use     ieee.std_logic_1164.all;
-entity  CONV_WEIGHT_BUFFER_TEST_BENCH_1x1x2x4 is
+entity  CONV_PARAMETER_BUFFER_TEST_BENCH_1x1x2x4 is
     generic (
         NAME            : STRING  := "test_1x1x2x4";
         SCENARIO_FILE   : STRING  := "test_1x1x2x4.snr";
@@ -891,10 +891,10 @@ entity  CONV_WEIGHT_BUFFER_TEST_BENCH_1x1x2x4 is
         SHAPE_C         : integer := 1;
         FINISH_ABORT    : boolean := FALSE
     );
-end CONV_WEIGHT_BUFFER_TEST_BENCH_1x1x2x4;
-architecture MODEL of CONV_WEIGHT_BUFFER_TEST_BENCH_1x1x2x4 is
+end CONV_PARAMETER_BUFFER_TEST_BENCH_1x1x2x4;
+architecture MODEL of CONV_PARAMETER_BUFFER_TEST_BENCH_1x1x2x4 is
 begin
-    TB: entity WORK.CONV_WEIGHT_BUFFER_TEST_BENCH generic map(
+    TB: entity WORK.CONV_PARAMETER_BUFFER_TEST_BENCH generic map(
         NAME            => NAME            , 
         SCENARIO_FILE   => SCENARIO_FILE   , 
         KY_SIZE         => KY_SIZE         , 
@@ -914,7 +914,7 @@ end MODEL;
 -----------------------------------------------------------------------------------
 library ieee;
 use     ieee.std_logic_1164.all;
-entity  CONV_WEIGHT_BUFFER_TEST_BENCH_3x3x1x1 is
+entity  CONV_PARAMETER_BUFFER_TEST_BENCH_3x3x1x1 is
     generic (
         NAME            : STRING  := "test_3x3x1x1";
         SCENARIO_FILE   : STRING  := "test_3x3x1x1.snr";
@@ -929,10 +929,10 @@ entity  CONV_WEIGHT_BUFFER_TEST_BENCH_3x3x1x1 is
         SHAPE_C         : integer := 1;
         FINISH_ABORT    : boolean := FALSE
     );
-end CONV_WEIGHT_BUFFER_TEST_BENCH_3x3x1x1;
-architecture MODEL of CONV_WEIGHT_BUFFER_TEST_BENCH_3x3x1x1 is
+end CONV_PARAMETER_BUFFER_TEST_BENCH_3x3x1x1;
+architecture MODEL of CONV_PARAMETER_BUFFER_TEST_BENCH_3x3x1x1 is
 begin
-    TB: entity WORK.CONV_WEIGHT_BUFFER_TEST_BENCH generic map(
+    TB: entity WORK.CONV_PARAMETER_BUFFER_TEST_BENCH generic map(
         NAME            => NAME            , 
         SCENARIO_FILE   => SCENARIO_FILE   , 
         KY_SIZE         => KY_SIZE         , 
@@ -952,7 +952,7 @@ end MODEL;
 -----------------------------------------------------------------------------------
 library ieee;
 use     ieee.std_logic_1164.all;
-entity  CONV_WEIGHT_BUFFER_TEST_BENCH_3x3x2x4 is
+entity  CONV_PARAMETER_BUFFER_TEST_BENCH_3x3x2x4 is
     generic (
         NAME            : STRING  := "test_3x3x2x4";
         SCENARIO_FILE   : STRING  := "test_3x3x2x4.snr";
@@ -967,10 +967,10 @@ entity  CONV_WEIGHT_BUFFER_TEST_BENCH_3x3x2x4 is
         SHAPE_C         : integer := 1;
         FINISH_ABORT    : boolean := FALSE
     );
-end CONV_WEIGHT_BUFFER_TEST_BENCH_3x3x2x4;
-architecture MODEL of CONV_WEIGHT_BUFFER_TEST_BENCH_3x3x2x4 is
+end CONV_PARAMETER_BUFFER_TEST_BENCH_3x3x2x4;
+architecture MODEL of CONV_PARAMETER_BUFFER_TEST_BENCH_3x3x2x4 is
 begin
-    TB: entity WORK.CONV_WEIGHT_BUFFER_TEST_BENCH generic map(
+    TB: entity WORK.CONV_PARAMETER_BUFFER_TEST_BENCH generic map(
         NAME            => NAME            , 
         SCENARIO_FILE   => SCENARIO_FILE   , 
         KY_SIZE         => KY_SIZE         , 

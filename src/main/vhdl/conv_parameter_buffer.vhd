@@ -1,8 +1,8 @@
 -----------------------------------------------------------------------------------
---!     @file    conv_weight_buffer.vhd
---!     @brief   Convolution Weight Buffer Module
---!     @version 0.1.0
---!     @date    2019/3/11
+--!     @file    conv_parameter_buffer.vhd
+--!     @brief   Convolution Parameter Buffer Module
+--!     @version 0.2.0
+--!     @date    2019/3/20
 --!     @author  Ichiro Kawazome <ichiro_k@ca2.so-net.ne.jp>
 -----------------------------------------------------------------------------------
 --
@@ -39,9 +39,9 @@ use     ieee.std_logic_1164.all;
 library PIPEWORK;
 use     PIPEWORK.IMAGE_TYPES.all;
 -----------------------------------------------------------------------------------
---! @brief Convolution Weight Buffer Module
+--! @brief Convolution Parameter Buffer Module
 -----------------------------------------------------------------------------------
-entity  CONV_WEIGHT_BUFFER is
+entity  CONV_PARAMETER_BUFFER is
     generic (
         PARAM           : --! @brief OUTPUT STREAM PARAMETER :
                           --! 出力側のストリームのパラメータを指定する.
@@ -112,7 +112,7 @@ entity  CONV_WEIGHT_BUFFER is
                           --! 出力ストリームデータレディ信号.
                           in  std_logic
     );
-end CONV_WEIGHT_BUFFER;
+end CONV_PARAMETER_BUFFER;
 -----------------------------------------------------------------------------------
 -- 
 -----------------------------------------------------------------------------------
@@ -126,7 +126,7 @@ use     PIPEWORK.IMAGE_TYPES.all;
 library CONVOLUTION;
 use     CONVOLUTION.CONV_COMPONENTS.CONV_PARAMETER_BUFFER_WRITER;
 use     CONVOLUTION.CONV_COMPONENTS.CONV_PARAMETER_BUFFER_READER;
-architecture RTL of CONV_WEIGHT_BUFFER is
+architecture RTL of CONV_PARAMETER_BUFFER is
     -------------------------------------------------------------------------------
     -- BANK_SIZE : バンクの数
     -------------------------------------------------------------------------------

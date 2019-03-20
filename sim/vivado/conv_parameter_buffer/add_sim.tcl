@@ -41,7 +41,7 @@ add_vhdl_file sources_1 CONVOLUTION ../../../src/main/vhdl/conv_types.vhd
 add_vhdl_file sources_1 CONVOLUTION ../../../src/main/vhdl/conv_components.vhd
 add_vhdl_file sources_1 CONVOLUTION ../../../src/main/vhdl/conv_parameter_buffer_reader.vhd
 add_vhdl_file sources_1 CONVOLUTION ../../../src/main/vhdl/conv_parameter_buffer_writer.vhd
-add_vhdl_file sources_1 CONVOLUTION ../../../src/main/vhdl/conv_weight_buffer.vhd
+add_vhdl_file sources_1 CONVOLUTION ../../../src/main/vhdl/conv_parameter_buffer.vhd
 add_vhdl_file sim_1     WORK ../../../src/test/vhdl/image_stream_models/image_stream_player.vhd
 add_vhdl_file sim_1     WORK ../../../src/test/vhdl/image_stream_models/image_stream_slave_player.vhd
-add_vhdl_file sim_1     WORK ../../../src/test/vhdl/conv_weight_buffer/conv_weight_buffer_test_bench.vhd
+add_vhdl_file sim_1     WORK ../../../src/test/vhdl/conv_parameter_buffer/conv_parameter_buffer_test_bench.vhd

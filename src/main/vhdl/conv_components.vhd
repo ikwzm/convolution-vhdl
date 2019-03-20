@@ -2,7 +2,7 @@
 --!     @file    conv_components.vhd                                             --
 --!     @brief   CONVOLUTION COMPONENT LIBRARY DESCRIPTION                       --
 --!     @version 0.1.0                                                           --
---!     @date    2019/03/11                                                      --
+--!     @date    2019/03/20                                                      --
 --!     @author  Ichiro Kawazome <ichiro_k@ca2.so-net.ne.jp>                     --
 -----------------------------------------------------------------------------------
 -----------------------------------------------------------------------------------
@@ -692,9 +692,9 @@ component CONV_PARAMETER_BUFFER_READER
     );
 end component;
 -----------------------------------------------------------------------------------
---! @brief CONV_WEIGHT_BUFFER                                                    --
+--! @brief CONV_PARAMETER_BUFFER                                                 --
 -----------------------------------------------------------------------------------
-component CONV_WEIGHT_BUFFER
+component CONV_PARAMETER_BUFFER
     generic (
         PARAM           : --! @brief OUTPUT STREAM PARAMETER :
                           --! 出力側のストリームのパラメータを指定する.

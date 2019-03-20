@@ -3,7 +3,7 @@
 #
 
 set project_directory       [file dirname [info script]]
-set project_name            "conv_weight_buffer"
+set project_name            "conv_parameter_buffer"
 set device_parts            "xc7z010clg400-1"
 #
 # Create project
@@ -74,8 +74,8 @@ source "add_sim.tcl"
 # Set 'sim_1' fileset properties
 #
 set obj [get_filesets sim_1]
-set_property "top" "CONV_WEIGHT_BUFFER_TEST_BENCH_3x3x2x4" $obj
-set_property "generic" "SCENARIO_FILE=../../../../../../src/test/scenarios/conv_weight_buffer/test_3x3x2x4.snr FINISH_ABORT=true" $obj
+set_property "top" "CONV_PARAMETER_BUFFER_TEST_BENCH_3x3x2x4" $obj
+set_property "generic" "SCENARIO_FILE=../../../../../../src/test/scenarios/conv_parameter_buffer/test_3x3x2x4.snr FINISH_ABORT=true" $obj
 
 update_compile_order -fileset sources_1
 update_compile_order -fileset sim_1
