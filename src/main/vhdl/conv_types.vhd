@@ -2,7 +2,7 @@
 --!     @file    conv_types.vhd
 --!     @brief   Convolution Engine Types Package.
 --!     @version 0.2.0
---!     @date    2019/2/27
+--!     @date    2019/3/20
 --!     @author  Ichiro Kawazome <ichiro_k@ca2.so-net.ne.jp>
 -----------------------------------------------------------------------------------
 --
@@ -887,7 +887,7 @@ package body CONV_TYPES is
                            Y       =>           STREAM_PARAM.SHAPE.Y.LO,
                            DATA    => i_data
                         );
-            for o_c_pos in 0 to PIPELINE_PARAM.SHAPE.Y.SIZE-1 loop
+            for o_c_pos in 0 to PIPELINE_PARAM.SHAPE.C.SIZE-1 loop
             for o_y_pos in 0 to PIPELINE_PARAM.SHAPE.Y.SIZE-1 loop
             for o_x_pos in 0 to PIPELINE_PARAM.SHAPE.X.SIZE-1 loop
                 SET_ELEMENT_TO_IMAGE_STREAM_DATA(
