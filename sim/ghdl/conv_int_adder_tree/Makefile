@@ -1,22 +1,22 @@
 
-WORK                 = CONVOLUTION
-SRC_PATH             = ../../../src
-DUMMY_PLUG_SRC_PATH  = ../../../Dummy_Plug/src/main/vhdl
-PIPEWORK_SRC_PATH    = ../../../PipeWork/src/
-DUMMY_PLUG_WORK_PATH = ./dummy_plug/
-PIPEWORK_WORK_PATH   = ./pipework/
-VHDL_SRC_PATH        = $(SRC_PATH)/main/vhdl
-SCENARIO_PATH        = $(SRC_PATH)/test/scenarios/image_window_buffer
-
+WORK                  := CONVOLUTION
+SRC_PATH              := ../../../src
+DUMMY_PLUG_SRC_PATH   := ../../../Dummy_Plug/src/main/vhdl
+PIPEWORK_SRC_PATH     := ../../../PipeWork/src/
+DUMMY_PLUG_WORK_PATH  := ./dummy_plug/
+PIPEWORK_WORK_PATH    := ./pipework/
+VHDL_SRC_PATH         := $(SRC_PATH)/main/vhdl
+SCENARIO_PATH         := $(SRC_PATH)/test/scenarios/image_window_buffer
 
 GHDL       = ghdl
 GHDLFLAGS  = --mb-comments -P$(DUMMY_PLUG_WORK_PATH) -P$(PIPEWORK_WORK_PATH) 
 
+DUMMY_PLUG            := $(DUMMY_PLUG_WORK_PATH)/dummy_plug-obj93.cf
+PIPEWORK              := $(PIPEWORK_WORK_PATH)/pipework-obj93.cf
+
 all:  conv_types.o conv_int_adder.o conv_int_adder_tree.o conv_int_accumulator.o conv_int_multiplier.o conv_components.o conv_int_core.o
 
-pipework   : $(PIPEWORK_WORK_PATH)/pipework-obj93.cf
-
-$(PIPEWORK_WORK_PATH)/pipework-obj93.cf :
+$(PIPEWORK) :
 	@if [ ! -d $(PIPEWORK_WORK_PATH) ]; \
 	    then echo "mkdir -p $(PIPEWORK_WORK_PATH)"; mkdir -p $(PIPEWORK_WORK_PATH); \
 	fi
@@ -27,9 +27,7 @@ $(PIPEWORK_WORK_PATH)/pipework-obj93.cf :
             --execute '$(GHDL) -a $(GHDLFLAGS) --work=#{library_name} --workdir=$(PIPEWORK_WORK_PATH) #{file_name}' \
             $(PIPEWORK_SRC_PATH)
 
-dummy_plug : $(DUMMY_PLUG_WORK_PATH)/dummy_plug-obj93.cf
-
-$(DUMMY_PLUG_WORK_PATH)/dummy_plug-obj93.cf :
+$(DUMMY_PLUG) :
 	@if [ ! -d $(DUMMY_PLUG_WORK_PATH) ]; \
 	    then echo "mkdir -p $(DUMMY_PLUG_WORK_PATH)"; mkdir -p $(DUMMY_PLUG_WORK_PATH); \
 	fi
@@ -45,24 +43,24 @@ clean:
 	rm -f *.o *.cf $(TEST_BENCH)
 	rm -rf ./dummy_plug/ ./pipework/
 
-conv_types.o                : $(VHDL_SRC_PATH)/conv_types.vhd
+conv_types.o                : $(VHDL_SRC_PATH)/conv_types.vhd                        $(PIPEWORK)
 	$(GHDL) -a $(GHDLFLAGS) --work=$(WORK) $<
 
-conv_components.o           : $(VHDL_SRC_PATH)/conv_components.vhd conv_types.o pipework
+conv_components.o           : $(VHDL_SRC_PATH)/conv_components.vhd     conv_types.o  $(PIPEWORK)
 	$(GHDL) -a $(GHDLFLAGS) --work=$(WORK) $<
 
-conv_int_adder.o            : $(VHDL_SRC_PATH)/conv_int_adder.vhd      conv_types.o pipework
+conv_int_adder.o            : $(VHDL_SRC_PATH)/conv_int_adder.vhd      conv_types.o  $(PIPEWORK)
 	$(GHDL) -a $(GHDLFLAGS) --work=$(WORK) $<
 
-conv_int_adder_tree.o       : $(VHDL_SRC_PATH)/conv_int_adder_tree.vhd conv_types.o pipework
+conv_int_adder_tree.o       : $(VHDL_SRC_PATH)/conv_int_adder_tree.vhd conv_types.o  $(PIPEWORK)
 	$(GHDL) -a $(GHDLFLAGS) --work=$(WORK) $<
 
-conv_int_accumulator.o      : $(VHDL_SRC_PATH)/conv_int_accumulator.vhd conv_types.o pipework
+conv_int_accumulator.o      : $(VHDL_SRC_PATH)/conv_int_accumulator.vhd conv_types.o $(PIPEWORK)
 	$(GHDL) -a $(GHDLFLAGS) --work=$(WORK) $<
 
-conv_int_multiplier.o       : $(VHDL_SRC_PATH)/conv_int_multiplier.vhd  conv_types.o pipework
+conv_int_multiplier.o       : $(VHDL_SRC_PATH)/conv_int_multiplier.vhd  conv_types.o $(PIPEWORK)
 	$(GHDL) -a $(GHDLFLAGS) --work=$(WORK) $<
 
-conv_int_core.o             : $(VHDL_SRC_PATH)/conv_int_core.vhd  conv_types.o pipework
+conv_int_core.o             : $(VHDL_SRC_PATH)/conv_int_core.vhd        conv_types.o $(PIPEWORK)
 	$(GHDL) -a $(GHDLFLAGS) --work=$(WORK) $<
 

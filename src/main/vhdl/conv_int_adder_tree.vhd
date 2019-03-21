@@ -2,7 +2,7 @@
 --!     @file    conv_int_adder_tree.vhd
 --!     @brief   Convolution Integer Adder Tree Module
 --!     @version 0.2.0
---!     @date    2019/2/27
+--!     @date    2019/3/21
 --!     @author  Ichiro Kawazome <ichiro_k@ca2.so-net.ne.jp>
 -----------------------------------------------------------------------------------
 --
@@ -223,13 +223,10 @@ begin
                                   := NEW_IMAGE_STREAM_PARAM(
                                          ELEM_BITS => T_ELEM_BITS         ,
                                          INFO_BITS => I_PARAM.INFO_BITS   ,
-                                         SHAPE     => NEW_IMAGE_SHAPE(
-                                             ELEM_BITS => T_ELEM_BITS     ,
-                                             C         => NEW_IMAGE_SHAPE_SIDE_CONSTANT(T_SHAPE_C_SIZE),
-                                             D         => I_PARAM.SHAPE.D,
-                                             X         => I_PARAM.SHAPE.X,
-                                             Y         => I_PARAM.SHAPE.Y
-                                         )
+                                         C         => NEW_IMAGE_SHAPE_SIDE_CONSTANT(T_SHAPE_C_SIZE),
+                                         D         => I_PARAM.SHAPE.D,
+                                         X         => I_PARAM.SHAPE.X,
+                                         Y         => I_PARAM.SHAPE.Y
                                      );
         signal    t_data          :  std_logic_vector(T_PARAM.DATA.SIZE-1 downto 0);
         signal    t_valid         :  std_logic;

@@ -2,7 +2,7 @@
 --!     @file    conv_types.vhd
 --!     @brief   Convolution Engine Types Package.
 --!     @version 0.2.0
---!     @date    2019/3/20
+--!     @date    2019/3/21
 --!     @author  Ichiro Kawazome <ichiro_k@ca2.so-net.ne.jp>
 -----------------------------------------------------------------------------------
 --
@@ -256,13 +256,10 @@ package body CONV_TYPES is
         a_stream_y_size   := KERNEL_SIZE.Y.SIZE + STRIDE.Y*(Y_UNROLL-1);
         param.A_STREAM    := NEW_IMAGE_STREAM_PARAM(
                                  ELEM_BITS => I_STREAM.ELEM_BITS,
-                                 SHAPE     => NEW_IMAGE_SHAPE(
-                                                  ELEM_BITS => I_STREAM.ELEM_BITS,
-                                                  C         => NEW_IMAGE_SHAPE_SIDE_CONSTANT(C_UNROLL, TRUE , TRUE),
-                                                  D         => NEW_IMAGE_SHAPE_SIDE_CONSTANT(D_UNROLL, FALSE, TRUE),
-                                                  X         => NEW_IMAGE_SHAPE_SIDE_CONSTANT(KERNEL_SIZE.X.LO, KERNEL_SIZE.X.LO + a_stream_x_size - 1, TRUE, TRUE),
-                                                  Y         => NEW_IMAGE_SHAPE_SIDE_CONSTANT(KERNEL_SIZE.Y.LO, KERNEL_SIZE.Y.LO + a_stream_y_size - 1, TRUE, TRUE)
-                                              ),
+                                 C         => NEW_IMAGE_SHAPE_SIDE_CONSTANT(C_UNROLL, TRUE , TRUE),
+                                 D         => NEW_IMAGE_SHAPE_SIDE_CONSTANT(D_UNROLL, FALSE, TRUE),
+                                 X         => NEW_IMAGE_SHAPE_SIDE_CONSTANT(KERNEL_SIZE.X.LO, KERNEL_SIZE.X.LO + a_stream_x_size - 1, TRUE, TRUE),
+                                 Y         => NEW_IMAGE_SHAPE_SIDE_CONSTANT(KERNEL_SIZE.Y.LO, KERNEL_SIZE.Y.LO + a_stream_y_size - 1, TRUE, TRUE),
                                  STRIDE    => NEW_IMAGE_STREAM_STRIDE_PARAM(
                                                   X         => STRIDE.X + X_UNROLL - 1,
                                                   Y         => STRIDE.Y + Y_UNROLL - 1
@@ -273,47 +270,32 @@ package body CONV_TYPES is
         ---------------------------------------------------------------------------
         param.B_STREAM    := NEW_IMAGE_STREAM_PARAM(
                                  ELEM_BITS => B_ELEM_BITS,
-                                 SHAPE     => NEW_IMAGE_SHAPE(
-                                                  ELEM_BITS => B_ELEM_BITS,
-                                                  C         => NEW_IMAGE_SHAPE_SIDE_CONSTANT(D_UNROLL, TRUE,  TRUE ),
-                                                  D         => NEW_IMAGE_SHAPE_SIDE_CONSTANT(0       , FALSE, FALSE),
-                                                  X         => NEW_IMAGE_SHAPE_SIDE_CONSTANT(0       , FALSE, FALSE),
-                                                  Y         => NEW_IMAGE_SHAPE_SIDE_CONSTANT(0       , FALSE, FALSE)
-                                              ),
-                                 STRIDE    => NEW_IMAGE_STREAM_STRIDE_PARAM(
-                                                  X         => 1,
-                                                  Y         => 1
-                                              )
+                                 C         => NEW_IMAGE_SHAPE_SIDE_CONSTANT(D_UNROLL, TRUE,  TRUE ),
+                                 D         => NEW_IMAGE_SHAPE_SIDE_CONSTANT(0       , FALSE, FALSE),
+                                 X         => NEW_IMAGE_SHAPE_SIDE_CONSTANT(0       , FALSE, FALSE),
+                                 Y         => NEW_IMAGE_SHAPE_SIDE_CONSTANT(0       , FALSE, FALSE),
+                                 STRIDE    => NEW_IMAGE_STREAM_STRIDE_PARAM(1,1)
                              );
         ---------------------------------------------------------------------------
         --
         ---------------------------------------------------------------------------
         param.W_STREAM    := NEW_IMAGE_STREAM_PARAM(
                                  ELEM_BITS => W_ELEM_BITS,
-                                 SHAPE     => NEW_IMAGE_SHAPE(
-                                                  ELEM_BITS => W_ELEM_BITS,
-                                                  C         => NEW_IMAGE_SHAPE_SIDE_CONSTANT(C_UNROLL, TRUE, TRUE),
-                                                  D         => NEW_IMAGE_SHAPE_SIDE_CONSTANT(D_UNROLL, TRUE, TRUE),
-                                                  X         => NEW_IMAGE_SHAPE_SIDE_CONSTANT(KERNEL_SIZE.X.LO, KERNEL_SIZE.X.HI, TRUE),
-                                                  Y         => NEW_IMAGE_SHAPE_SIDE_CONSTANT(KERNEL_SIZE.Y.LO, KERNEL_SIZE.Y.HI, TRUE)
-                                              ),
-                                 STRIDE    => NEW_IMAGE_STREAM_STRIDE_PARAM(
-                                                  X         => 1,
-                                                  Y         => 1
-                                              )
+                                 C         => NEW_IMAGE_SHAPE_SIDE_CONSTANT(C_UNROLL, TRUE, TRUE),
+                                 D         => NEW_IMAGE_SHAPE_SIDE_CONSTANT(D_UNROLL, TRUE, TRUE),
+                                 X         => NEW_IMAGE_SHAPE_SIDE_CONSTANT(KERNEL_SIZE.X.LO, KERNEL_SIZE.X.HI, TRUE),
+                                 Y         => NEW_IMAGE_SHAPE_SIDE_CONSTANT(KERNEL_SIZE.Y.LO, KERNEL_SIZE.Y.HI, TRUE),
+                                 STRIDE    => NEW_IMAGE_STREAM_STRIDE_PARAM(1,1)
                              );
         ---------------------------------------------------------------------------
         --
         ---------------------------------------------------------------------------
         param.A_PIPELINE  := NEW_IMAGE_STREAM_PARAM(
                                  ELEM_BITS => I_STREAM.ELEM_BITS,
-                                 SHAPE     => NEW_IMAGE_SHAPE(
-                                                  ELEM_BITS => I_STREAM.ELEM_BITS,
-                                                  C         => pipeline_shape_c,
-                                                  D         => pipeline_shape_d,
-                                                  X         => pipeline_shape_x,
-                                                  Y         => pipeline_shape_y
-                                              ),
+                                 C         => pipeline_shape_c,
+                                 D         => pipeline_shape_d,
+                                 X         => pipeline_shape_x,
+                                 Y         => pipeline_shape_y,
                                  STRIDE    => pipeline_stride
                              );
         ---------------------------------------------------------------------------
@@ -321,13 +303,10 @@ package body CONV_TYPES is
         ---------------------------------------------------------------------------
         param.W_PIPELINE  := NEW_IMAGE_STREAM_PARAM(
                                  ELEM_BITS => W_ELEM_BITS,
-                                 SHAPE     => NEW_IMAGE_SHAPE(
-                                                  ELEM_BITS => W_ELEM_BITS,
-                                                  C         => pipeline_shape_c,
-                                                  D         => pipeline_shape_d,
-                                                  X         => pipeline_shape_x,
-                                                  Y         => pipeline_shape_y
-                                              ),
+                                 C         => pipeline_shape_c,
+                                 D         => pipeline_shape_d,
+                                 X         => pipeline_shape_x,
+                                 Y         => pipeline_shape_y,
                                  STRIDE    => pipeline_stride
                              );
         ---------------------------------------------------------------------------
@@ -335,13 +314,10 @@ package body CONV_TYPES is
         ---------------------------------------------------------------------------
         param.M_PIPELINE  := NEW_IMAGE_STREAM_PARAM(
                                  ELEM_BITS => M_ELEM_BITS,
-                                 SHAPE     => NEW_IMAGE_SHAPE(
-                                                  ELEM_BITS => M_ELEM_BITS    ,
-                                                  C         => pipeline_shape_c,
-                                                  D         => pipeline_shape_d,
-                                                  X         => pipeline_shape_x,
-                                                  Y         => pipeline_shape_y
-                                              ),
+                                 C         => pipeline_shape_c,
+                                 D         => pipeline_shape_d,
+                                 X         => pipeline_shape_x,
+                                 Y         => pipeline_shape_y,
                                  STRIDE    => pipeline_stride
                              );
         ---------------------------------------------------------------------------
@@ -349,13 +325,10 @@ package body CONV_TYPES is
         ---------------------------------------------------------------------------
         param.B_PIPELINE  := NEW_IMAGE_STREAM_PARAM(
                                  ELEM_BITS => B_ELEM_BITS,
-                                 SHAPE     => NEW_IMAGE_SHAPE(
-                                                  ELEM_BITS => B_ELEM_BITS    ,
-                                                  C         => pipeline_shape_c,
-                                                  D         => pipeline_shape_d,
-                                                  X         => pipeline_shape_x,
-                                                  Y         => pipeline_shape_y
-                                              ),
+                                 C         => pipeline_shape_c,
+                                 D         => pipeline_shape_d,
+                                 X         => pipeline_shape_x,
+                                 Y         => pipeline_shape_y,
                                  STRIDE    => pipeline_stride
                              );
         ---------------------------------------------------------------------------
@@ -363,13 +336,10 @@ package body CONV_TYPES is
         ---------------------------------------------------------------------------
         param.O_PIPELINE  := NEW_IMAGE_STREAM_PARAM(
                                  ELEM_BITS => O_ELEM_BITS,
-                                 SHAPE     => NEW_IMAGE_SHAPE(
-                                                  ELEM_BITS => O_ELEM_BITS     ,
-                                                  C         => NEW_IMAGE_SHAPE_SIDE_CONSTANT(1, TRUE, TRUE),
-                                                  D         => pipeline_shape_d,
-                                                  X         => pipeline_shape_x,
-                                                  Y         => pipeline_shape_y
-                                              ),
+                                 C         => NEW_IMAGE_SHAPE_SIDE_CONSTANT(1, TRUE, TRUE),
+                                 D         => pipeline_shape_d,
+                                 X         => pipeline_shape_x,
+                                 Y         => pipeline_shape_y,
                                  STRIDE    => pipeline_stride
                              );
             
@@ -378,13 +348,10 @@ package body CONV_TYPES is
         ---------------------------------------------------------------------------
         param.O_STREAM    := NEW_IMAGE_STREAM_PARAM(
                                  ELEM_BITS => O_ELEM_BITS,
-                                 SHAPE     => NEW_IMAGE_SHAPE(
-                                                  ELEM_BITS => O_ELEM_BITS,
-                                                  C         => pipeline_shape_d,
-                                                  D         => NEW_IMAGE_SHAPE_SIDE_CONSTANT(0, FALSE, FALSE),
-                                                  X         => pipeline_shape_x,
-                                                  Y         => pipeline_shape_y
-                                             ),
+                                 C         => pipeline_shape_d,
+                                 D         => NEW_IMAGE_SHAPE_SIDE_CONSTANT(0, FALSE, FALSE),
+                                 X         => pipeline_shape_x,
+                                 Y         => pipeline_shape_y,
                                  STRIDE    => pipeline_stride
                              );
         ---------------------------------------------------------------------------

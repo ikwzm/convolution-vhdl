@@ -1,8 +1,8 @@
 -----------------------------------------------------------------------------------
 --!     @file    conv_int_core.vhd
 --!     @brief   Convolution Integer Core Module
---!     @version 0.1.0
---!     @date    2019/2/11
+--!     @version 0.2.0
+--!     @date    2019/3/21
 --!     @author  Ichiro Kawazome <ichiro_k@ca2.so-net.ne.jp>
 -----------------------------------------------------------------------------------
 --

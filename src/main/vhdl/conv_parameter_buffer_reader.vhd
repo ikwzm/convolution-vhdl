@@ -1,8 +1,8 @@
 -----------------------------------------------------------------------------------
 --!     @file    conv_parameter_buffer_reader.vhd
 --!     @brief   Convolution Parameter Buffer Reader Module
---!     @version 0.1.0
---!     @date    2019/3/11
+--!     @version 0.2.0
+--!     @date    2019/3/21
 --!     @author  Ichiro Kawazome <ichiro_k@ca2.so-net.ne.jp>
 -----------------------------------------------------------------------------------
 --
@@ -131,7 +131,7 @@ use     PIPEWORK.IMAGE_TYPES.all;
 use     PIPEWORK.COMPONENTS.UNROLLED_LOOP_COUNTER;
 architecture RTL of CONV_PARAMETER_BUFFER_READER is
     -------------------------------------------------------------------------------
-    -- 
+    -- Image Height Loop Control Signals
     -------------------------------------------------------------------------------
     signal    y_loop_start          :  std_logic;
     signal    y_loop_next           :  std_logic;
@@ -140,7 +140,7 @@ architecture RTL of CONV_PARAMETER_BUFFER_READER is
     signal    y_loop_first          :  std_logic;
     signal    y_loop_last           :  std_logic;
     -------------------------------------------------------------------------------
-    -- 
+    -- Image Width Loop Control Signals
     -------------------------------------------------------------------------------
     signal    x_loop_start          :  std_logic;
     signal    x_loop_next           :  std_logic;
@@ -149,7 +149,7 @@ architecture RTL of CONV_PARAMETER_BUFFER_READER is
     signal    x_loop_first          :  std_logic;
     signal    x_loop_last           :  std_logic;
     -------------------------------------------------------------------------------
-    -- 
+    -- Output Channel Loop Control Signals
     -------------------------------------------------------------------------------
     signal    d_loop_start          :  std_logic;
     signal    d_loop_next           :  std_logic;
@@ -159,7 +159,7 @@ architecture RTL of CONV_PARAMETER_BUFFER_READER is
     signal    d_loop_last           :  std_logic;
     signal    d_loop_valid          :  std_logic_vector(PARAM.SHAPE.D.SIZE-1 downto 0);
     -------------------------------------------------------------------------------
-    -- 
+    -- Input Channel Loop Control Signals
     -------------------------------------------------------------------------------
     signal    c_loop_start          :  std_logic;
     signal    c_loop_next           :  std_logic;
@@ -169,19 +169,19 @@ architecture RTL of CONV_PARAMETER_BUFFER_READER is
     signal    c_loop_last           :  std_logic;
     signal    c_loop_valid          :  std_logic_vector(PARAM.SHAPE.C.SIZE-1 downto 0);
     -------------------------------------------------------------------------------
-    -- 
+    -- Outlet Stream Signals
     -------------------------------------------------------------------------------
     signal    outlet_data           :  std_logic_vector(PARAM.DATA.SIZE-1 downto 0);
     signal    outlet_valid          :  std_logic;
     signal    outlet_ready          :  std_logic;
     -------------------------------------------------------------------------------
-    -- 
+    -- State Machine Signals
     -------------------------------------------------------------------------------
     type      STATE_TYPE            is (IDLE_STATE, START_STATE, RUN_STATE, RES_STATE);
     signal    state                 :  STATE_TYPE;
 begin
     -------------------------------------------------------------------------------
-    --
+    -- State Machine
     -------------------------------------------------------------------------------
     process (CLK, RST) begin
         if (RST = '1') then
@@ -222,7 +222,7 @@ begin
     REQ_READY    <= '1' when (state  = IDLE_STATE ) else '0';
     RES_VALID    <= '1' when (state  = RES_STATE  ) else '0';
     -------------------------------------------------------------------------------
-    -- Y LOOP
+    -- Image Height Loop Control
     -------------------------------------------------------------------------------
     Y_LOOP: block
         signal    y_loop_size   :  integer range 0 to SHAPE.Y.MAX_SIZE;
@@ -264,7 +264,7 @@ begin
                                  (y_loop_next  = '1' and y_loop_last = '0') else '0';
     end block;
     -------------------------------------------------------------------------------
-    -- X LOOP
+    -- Image Width Loop Control
     -------------------------------------------------------------------------------
     X_LOOP: block
         signal    x_loop_size   :  integer range 0 to SHAPE.X.MAX_SIZE;
@@ -306,7 +306,7 @@ begin
                                  (x_loop_next  = '1' and x_loop_last = '0') else '0';
     end block;
     -------------------------------------------------------------------------------
-    -- D LOOP
+    -- Output Channel Loop Control
     -------------------------------------------------------------------------------
     D_LOOP: block
         signal    d_loop_size   :  integer range 0 to SHAPE.D.MAX_SIZE;
@@ -349,7 +349,7 @@ begin
                                  (d_loop_next  = '1' and d_loop_last = '0') else '0';
     end block;
     -------------------------------------------------------------------------------
-    -- C LOOP
+    -- Input Channel Loop Control Signals
     -------------------------------------------------------------------------------
     C_LOOP: block
         signal    c_loop_size   :  integer range 0 to SHAPE.C.MAX_SIZE;

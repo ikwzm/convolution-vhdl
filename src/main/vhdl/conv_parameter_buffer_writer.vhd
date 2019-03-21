@@ -1,8 +1,8 @@
 -----------------------------------------------------------------------------------
 --!     @file    conv_parameter_buffer_writer.vhd
 --!     @brief   Convolution Parameter Buffer Writer Module
---!     @version 0.1.0
---!     @date    2019/3/11
+--!     @version 0.2.0
+--!     @date    2019/3/21
 --!     @author  Ichiro Kawazome <ichiro_k@ca2.so-net.ne.jp>
 -----------------------------------------------------------------------------------
 --
@@ -169,7 +169,7 @@ architecture RTL of CONV_PARAMETER_BUFFER_WRITER is
         return shifted_select;
     end function;
     -------------------------------------------------------------------------------
-    -- 
+    -- Output Channel Loop Control Signals
     -------------------------------------------------------------------------------
     signal    oc_loop_start         :  std_logic;
     signal    oc_loop_next          :  std_logic;
@@ -182,7 +182,7 @@ architecture RTL of CONV_PARAMETER_BUFFER_WRITER is
     constant  OC_SELECT_FIRST       :  std_logic_vector(PARAM.SHAPE.D.SIZE-1 downto 0) := NEW_FIRST_SELECT(PARAM.SHAPE.D.SIZE);
     constant  OC_SELECT_LAST        :  std_logic_vector(PARAM.SHAPE.D.SIZE-1 downto 0) := NEW_LAST_SELECT (PARAM.SHAPE.D.SIZE);
     -------------------------------------------------------------------------------
-    -- 
+    -- Kernel Height Loop Control Signals
     -------------------------------------------------------------------------------
     signal    ky_loop_start         :  std_logic;
     signal    ky_loop_next          :  std_logic;
@@ -195,7 +195,7 @@ architecture RTL of CONV_PARAMETER_BUFFER_WRITER is
     constant  KY_SELECT_FIRST       :  std_logic_vector(PARAM.SHAPE.Y.SIZE-1 downto 0) := NEW_FIRST_SELECT(PARAM.SHAPE.Y.SIZE);
     constant  KY_SELECT_LAST        :  std_logic_vector(PARAM.SHAPE.Y.SIZE-1 downto 0) := NEW_LAST_SELECT (PARAM.SHAPE.Y.SIZE);
     -------------------------------------------------------------------------------
-    -- 
+    -- Kernel Width Loop Control Signals
     -------------------------------------------------------------------------------
     signal    kx_loop_start         :  std_logic;
     signal    kx_loop_next          :  std_logic;
@@ -208,7 +208,7 @@ architecture RTL of CONV_PARAMETER_BUFFER_WRITER is
     constant  KX_SELECT_FIRST       :  std_logic_vector(PARAM.SHAPE.X.SIZE-1 downto 0) := NEW_FIRST_SELECT(PARAM.SHAPE.X.SIZE);
     constant  KX_SELECT_LAST        :  std_logic_vector(PARAM.SHAPE.X.SIZE-1 downto 0) := NEW_LAST_SELECT (PARAM.SHAPE.X.SIZE);
     -------------------------------------------------------------------------------
-    -- 
+    -- Input Channel Loop Control Signals
     -------------------------------------------------------------------------------
     signal    ic_loop_start         :  std_logic;
     signal    ic_loop_next          :  std_logic;
@@ -221,29 +221,29 @@ architecture RTL of CONV_PARAMETER_BUFFER_WRITER is
     constant  IC_SELECT_FIRST       :  std_logic_vector(PARAM.SHAPE.C.SIZE-1 downto 0) := NEW_FIRST_SELECT(PARAM.SHAPE.C.SIZE);
     constant  IC_SELECT_LAST        :  std_logic_vector(PARAM.SHAPE.C.SIZE-1 downto 0) := NEW_LAST_SELECT (PARAM.SHAPE.C.SIZE);
     -------------------------------------------------------------------------------
-    -- 
+    -- Intake Stream Signals
     -------------------------------------------------------------------------------
     signal    intake_data           :  std_logic_vector(I_DATA'length-1 downto 0);
     signal    intake_valid          :  std_logic;
     signal    intake_ready          :  std_logic;
     -------------------------------------------------------------------------------
-    -- 
+    -- Write Size Signals
     -------------------------------------------------------------------------------
     signal    curr_write_size       :  unsigned(BUF_ADDR_BITS   downto 0);
     signal    write_size_update     :  boolean;
     -------------------------------------------------------------------------------
-    -- 
+    -- Write Address Signals
     -------------------------------------------------------------------------------
     signal    curr_write_addr       :  unsigned(BUF_ADDR_BITS-1 downto 0);
     signal    base_write_addr       :  unsigned(BUF_ADDR_BITS-1 downto 0);
     -------------------------------------------------------------------------------
-    -- 
+    -- State Machine Signals
     -------------------------------------------------------------------------------
     type      STATE_TYPE            is (IDLE_STATE, START_STATE, RUN_STATE, RES_STATE);
     signal    state                 :  STATE_TYPE;
 begin
     -------------------------------------------------------------------------------
-    --
+    -- State Machine
     -------------------------------------------------------------------------------
     process (CLK, RST) begin
         if (RST = '1') then
@@ -288,13 +288,13 @@ begin
     RES_VALID     <= '1' when (state  = RES_STATE  ) else '0';
     RES_SIZE      <= std_logic_vector(curr_write_size);
     -------------------------------------------------------------------------------
-    -- INTAKE WEGHT DATA
+    -- Intake Parameter 
     -------------------------------------------------------------------------------
     intake_valid <= I_VALID;
     intake_data  <= I_DATA;
     I_READY      <= intake_ready;
     -------------------------------------------------------------------------------
-    -- OC LOOP
+    -- Output Channel Loop Control
     -------------------------------------------------------------------------------
     OC_LOOP: block
         signal    oc_loop_size  :  integer range 0 to SHAPE.D.MAX_SIZE;
@@ -354,7 +354,7 @@ begin
         end process;
     end block;
     -------------------------------------------------------------------------------
-    -- KY LOOP
+    -- Kernel Height Loop Control
     -------------------------------------------------------------------------------
     KY_LOOP: block
     begin
@@ -409,7 +409,7 @@ begin
         end process;
     end block;
     -------------------------------------------------------------------------------
-    -- KX LOOP
+    -- Kernel Width Loop Control
     -------------------------------------------------------------------------------
     KX_LOOP: block
     begin
@@ -464,7 +464,7 @@ begin
         end process;
     end block;
     -------------------------------------------------------------------------------
-    -- IC LOOP
+    -- Input Channel Loop Control
     -------------------------------------------------------------------------------
     IC_LOOP: block
         signal    ic_loop_size  :  integer range 0 to SHAPE.C.MAX_SIZE;
@@ -603,7 +603,7 @@ begin
                 BUF_DATA <= (others => '0');
                 BUF_WE   <= (others => '0');
         elsif (CLK'event and CLK = '1') then
-            if (CLR = '1') then
+            if (CLR = '1') or (state = IDLE_STATE) then
                 BUF_ADDR <= (others => '0');
                 BUF_DATA <= (others => '0');
                 BUF_WE   <= (others => '0');

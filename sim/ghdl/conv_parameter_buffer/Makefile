@@ -21,6 +21,11 @@ TEST_BENCH            := conv_parameter_buffer_test_bench_1x1x1x1   \
                          conv_parameter_buffer_test_bench_3x3x2x4   \
                          $(END_LIST)
 
+DUMMY_PLUG            := $(DUMMY_PLUG_WORK_PATH)/dummy_plug-obj93.cf
+PIPEWORK              := $(PIPEWORK_WORK_PATH)/pipework-obj93.cf
+CONVOLUTION           := $(CONVOLUTION_WORK_PATH)/convolution-obj93.cf
+IMAGE_STREAM_MODELS   := image_stream_models.o image_stream_player.o image_stream_slave_player.o
+
 .PHONY all: $(TEST_BENCH)
 
 conv_parameter_buffer_test_bench_1x1x1x1         : conv_parameter_buffer_test_bench.o test_1x1x1x1.snr
@@ -106,16 +111,16 @@ clean:
 	rm -f *.o *.cf $(TEST_BENCH)
 	rm -rf ./dummy_plug/ ./pipework/ ./convolution/
 
-analyze: pipework dummy_plug convolution image_stream_models.o image_stream_player.o image_stream_slave_player.o conv_parameter_buffer_test_bench.o
+analyze: $(DUMMY_PLUG) $(PIPEWORK) $(CONVOLUTION) $(IMAGE_STREAM_MODELS)
 
-image_stream_models.o           : $(VHDL_SRC_PATH)/image_stream_models/image_stream_models.vhd
+image_stream_models.o           : $(VHDL_SRC_PATH)/image_stream_models/image_stream_models.vhd $(DUMMY_PLUG) $(PIPEWORK)
 	$(GHDL) -a $(GHDLFLAGS) --work=$(WORK) $<
 
-image_stream_player.o           : $(VHDL_SRC_PATH)/image_stream_models/image_stream_player.vhd
+image_stream_player.o           : $(VHDL_SRC_PATH)/image_stream_models/image_stream_player.vhd $(DUMMY_PLUG) $(PIPEWORK)
 	$(GHDL) -a $(GHDLFLAGS) --work=$(WORK) $<
 
-image_stream_slave_player.o     : $(VHDL_SRC_PATH)/image_stream_models/image_stream_slave_player.vhd
+image_stream_slave_player.o     : $(VHDL_SRC_PATH)/image_stream_models/image_stream_slave_player.vhd $(DUMMY_PLUG) $(PIPEWORK)
 	$(GHDL) -a $(GHDLFLAGS) --work=$(WORK) $<
 
-conv_parameter_buffer_test_bench.o : $(VHDL_SRC_PATH)/conv_parameter_buffer/conv_parameter_buffer_test_bench.vhd
+conv_parameter_buffer_test_bench.o : $(VHDL_SRC_PATH)/conv_parameter_buffer/conv_parameter_buffer_test_bench.vhd $(IMAGE_STREAM_MODELS) $(CONVOLUTION)
 	$(GHDL) -a $(GHDLFLAGS) --work=$(WORK) $<
